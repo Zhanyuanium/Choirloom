@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "choirloom:score/rational-time/0.1.0",
+  "title": "RationalTime",
+  "version": "0.1.0",
+  "description": "Canonical JSON serialization of choirloom::score::RationalTime - exact rational musical time for ScoreIR. Whole note == 1 (a quarter note is 1/4). DRAFT / NON-FROZEN. Two-level validation: this schema enforces the canonical decimal-string syntax only; the exact signed int64 range and the reduced-canonical invariants (fully reduced, gcd(numerator, denominator) == 1, denominator > 0, zero == 0/1) are enforced semantically by the core (RationalTime::from_canonical_json). See docs/rational-time-notes.md.",
+  "type": "object",
+  "required": ["numerator", "denominator"],
+  "additionalProperties": false,
+  "properties": {
+    "numerator": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*)$",
+      "description": "Reduced numerator as a decimal string; the sign is carried here. Canonical zero is 0. No '+', no leading zeros, '-0' is not canonical. Signed int64 range is enforced by the core, not by this pattern."
+    },
+    "denominator": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*$",
+      "description": "Reduced positive denominator as a decimal string. No leading zeros; 0 is never canonical. Positive int64 range is enforced by the core, not by this pattern."
+    }
+  }
+}

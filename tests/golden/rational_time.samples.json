@@ -1,0 +1,15 @@
+{
+  "$schema": "../../schemas/score/rational-time-collection.schema.json",
+  "description": "Golden samples for the canonical JSON serialization of RationalTime (whole note == 1). The envelope conforms to the versioned collection schema; every case 'value' is a strict RationalTime object per schemas/score/rational-time.schema.json. The unit test executable parses, structurally validates, deserializes and re-serializes every case and compares exact canonical JSON.",
+  "cases": [
+    { "name": "zero",            "note": "canonical zero is 0/1",      "value": { "numerator": "0",  "denominator": "1"  } },
+    { "name": "whole-note",      "note": "whole note == 1",            "value": { "numerator": "1",  "denominator": "1"  } },
+    { "name": "quarter",         "note": "quarter note",               "value": { "numerator": "1",  "denominator": "4"  } },
+    { "name": "eighth",          "note": "eighth note",                "value": { "numerator": "1",  "denominator": "8"  } },
+    { "name": "triplet-eighth",  "note": "1/8 * 2/3",                  "value": { "numerator": "1",  "denominator": "12" } },
+    { "name": "triplet-quarter", "note": "1/4 * 2/3",                  "value": { "numerator": "1",  "denominator": "6"  } },
+    { "name": "nested-triplet",  "note": "1/8 * (2/3) * (2/3)",        "value": { "numerator": "1",  "denominator": "18" } },
+    { "name": "compound",        "note": "1/12 + 1/8",                 "value": { "numerator": "5",  "denominator": "24" } },
+    { "name": "negative",        "note": "sign carried in numerator",  "value": { "numerator": "-2", "denominator": "3"  } }
+  ]
+}
