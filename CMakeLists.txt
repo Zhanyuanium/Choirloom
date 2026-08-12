@@ -1,12 +1,12 @@
 # ============================================================================
-# Root CMake configuration for the M0-001/M0-002 RationalTime slice.
+# Root CMake configuration for the M0-001/M0-002/M0-003 portable-core slices.
 #
-# Purpose: the current HARNESS TOOLCHAIN for the rational-time scope. It is
-# invoked by the project control plane via:
-#   dev.ps1 build|test|verify rational-time
-# (which calls cmake/ctest against the deterministic build directory
-# build/dev/rational-time). This is NOT a full product build/test pipeline:
-# it builds and tests only the RationalTime slice, and it is not a CI gate.
+# Purpose: the current HARNESS TOOLCHAIN for the scoped control-plane commands:
+#   dev.ps1 build|test|verify rational-time   (M0-001/M0-002)
+#   dev.ps1 build|test|verify entity-revision (M0-003)
+# which call cmake/ctest against deterministic, git-ignored build directories
+# under build/dev/. This is NOT a full product build/test pipeline: it builds
+# and tests only the portable-core slice test targets, and it is not a CI gate.
 #
 # Manual usage (diagnostic only; prefer dev.ps1):
 #   cmake -S . -B build/dev/rational-time -G Ninja

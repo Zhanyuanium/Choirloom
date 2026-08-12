@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "choirloom:score/project-revision-metadata/0.1.0",
+  "title": "ProjectRevisionMetadata",
+  "version": "0.1.0",
+  "description": "Minimum project-snapshot metadata primitive: revisionId (required), optional parentRevisionId, narrow origin (ManualEdit | Recognition | Migration), and a non-empty human-readable summary. NOT a correction log, undo engine, recognition solver, provenance store, or HumanVerified protection. DRAFT / NON-FROZEN. Two-level validation: this schema enforces the syntactic shape/grammar; self-parent rejection, whitespace-only summary rejection, and exact revision-id semantics are enforced by the core (ProjectRevisionMetadata::from_values / from_json).",
+  "type": "object",
+  "required": ["revisionId", "origin", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "revisionId": {
+      "$ref": "choirloom:score/revision-id/0.1.0"
+    },
+    "parentRevisionId": {
+      "$ref": "choirloom:score/revision-id/0.1.0",
+      "description": "Optional parent snapshot revision. Must not equal revisionId (core rejects self-parent)."
+    },
+    "origin": {
+      "type": "string",
+      "enum": ["ManualEdit", "Recognition", "Migration"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Non-empty human-readable summary; the core additionally rejects whitespace-only text."
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "choirloom:score/revision-id/0.1.0",
+  "title": "RevisionId",
+  "version": "0.1.0",
+  "description": "Canonical wire form of choirloom::score::RevisionId - a nominal, opaque 128-bit identity for project revisions. Lower-case UUIDv4-compatible string; equally non-ordering and intentionally distinct from EntityId. DRAFT / NON-FROZEN. Two-level validation: this schema enforces the syntactic pattern only; non-nil, exact 16-byte, and version/variant semantics are enforced by the core (RevisionId::from_string / RevisionId::from_bytes).",
+  "type": "string",
+  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+}

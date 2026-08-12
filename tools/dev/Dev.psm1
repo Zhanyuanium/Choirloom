@@ -5,9 +5,10 @@
 #  All complex logic lives here; dev.ps1 is a thin entry point.
 #  Written for Windows PowerShell 5.1 compatibility (also runs on pwsh 7+).
 #
-#  Implemented operations (M0-002): doctor (read-only), and the scoped harness
-#  commands `build|test|verify rational-time`, which invoke local CMake/CTest
-#  only and write disposable build artifacts under build/dev/rational-time.
+#  Implemented operations (M0-002/M0-003): doctor (read-only), and the scoped
+#  harness commands `build|test|verify rational-time` and
+#  `build|test|verify entity-revision`, which invoke local CMake/CTest only and
+#  write disposable build artifacts under build/dev/<scope>.
 #  The full product/M0 harness, ScoreIR fixture/schema harness, CI,
 #  migration/revision primitives and WinUI host gates remain open.
 #  Every operation that is not yet backed by a real implementation MUST fail
@@ -166,49 +167,56 @@ function Invoke-DevBuild {
     param([string]$Scope)
     Write-DevHeader 'build'
     if ([string]::IsNullOrWhiteSpace($Scope)) {
-        throw 'Usage: dev.ps1 build <scope>. A scope is required: only explicit scope "rational-time" is implemented (M0-002 RationalTime harness). There is no default build scope.'
+        throw 'Usage: dev.ps1 build <scope>. A scope is required; supported scopes: rational-time, entity-revision. There is no default build scope.'
     }
-    if ($Scope.ToLowerInvariant() -eq 'rational-time') {
-        Invoke-DevBuildRationalTime
-        return
+    switch ($Scope.ToLowerInvariant()) {
+        'rational-time'   { Invoke-DevBuildSlice -Scope 'rational-time'; return }
+        'entity-revision' { Invoke-DevBuildSlice -Scope 'entity-revision'; return }
+        default {
+            throw ("Unknown build scope '{0}'. Supported scopes: rational-time, entity-revision. No all/core/scoreir aliases are defined." -f $Scope)
+        }
     }
-    throw ("Unknown build scope '{0}'. Only scope 'rational-time' is supported (M0-002 RationalTime harness). No all/core/scoreir aliases are defined." -f $Scope)
 }
 
 function Invoke-DevTest {
     param([string]$Scope)
     Write-DevHeader 'test'
     if ([string]::IsNullOrWhiteSpace($Scope)) {
-        throw 'Usage: dev.ps1 test <scope>. A scope is required: only explicit scope "rational-time" is implemented (M0-002 RationalTime harness). There is no default test scope.'
+        throw 'Usage: dev.ps1 test <scope>. A scope is required; supported scopes: rational-time, entity-revision. There is no default test scope.'
     }
-    if ($Scope.ToLowerInvariant() -eq 'rational-time') {
-        Invoke-DevTestRationalTime
-        return
+    switch ($Scope.ToLowerInvariant()) {
+        'rational-time'   { Invoke-DevTestSlice -Scope 'rational-time'; return }
+        'entity-revision' { Invoke-DevTestSlice -Scope 'entity-revision'; return }
+        default {
+            throw ("Unknown test scope '{0}'. Supported scopes: rational-time, entity-revision. No all/core/scoreir aliases are defined." -f $Scope)
+        }
     }
-    throw ("Unknown test scope '{0}'. Only scope 'rational-time' is supported (M0-002 RationalTime harness). No all/core/scoreir aliases are defined." -f $Scope)
 }
 
 function Invoke-DevVerify {
     param([string]$Scope)
     Write-DevHeader 'verify'
     if ([string]::IsNullOrWhiteSpace($Scope)) {
-        throw 'Usage: dev.ps1 verify <scope>. A scope is required: only explicit scope "rational-time" is implemented (M0-002 RationalTime harness). There is no default verify scope.'
+        throw 'Usage: dev.ps1 verify <scope>. A scope is required; supported scopes: rational-time, entity-revision. There is no default verify scope.'
     }
-    if ($Scope.ToLowerInvariant() -eq 'rational-time') {
-        Invoke-DevVerifyRationalTime
-        return
+    switch ($Scope.ToLowerInvariant()) {
+        'rational-time'   { Invoke-DevVerifySlice -Scope 'rational-time'; return }
+        'entity-revision' { Invoke-DevVerifySlice -Scope 'entity-revision'; return }
+        default {
+            throw ("Unknown verify scope '{0}'. Supported scopes: rational-time, entity-revision. No all/core/scoreir aliases are defined." -f $Scope)
+        }
     }
-    throw ("Unknown verify scope '{0}'. Only scope 'rational-time' is supported (M0-002 RationalTime harness). No all/core/scoreir aliases are defined." -f $Scope)
 }
 
 # ---------------------------------------------------------------------------
-# M0-002 RationalTime harness (scoped CMake/CTest)
+# M0-002/M0-003 scoped harness (CMake/CTest)
 #
-# Contract (see spec/development-workflow.md S4 and docs/rational-time-notes.md):
-#   * Only the explicit scope "rational-time" is implemented. The repo root is
-#     resolved from the module location, never from the working directory, so
-#     these commands work from any CWD.
-#   * A deterministic ignored build directory build/dev/rational-time is used
+# Contract (see spec/development-workflow.md S4 and the slice docs):
+#   * Explicit scopes only: "rational-time" (M0-001/M0-002) and
+#     "entity-revision" (M0-003). The repo root is resolved from the module
+#     location, never from the working directory, so these commands work from
+#     any CWD.
+#   * Deterministic ignored build directories build/dev/<scope> are used
 #     (never any pre-existing build directory).
 #   * Only local CMake/CTest are invoked. cmake (>= 3.20) and ctest are found
 #     via Get-Command; Ninja is used when available (never downloaded). No
@@ -240,19 +248,279 @@ function Assert-DevCmakeVersion {
     $major = [int]$Matches[1]
     $minor = [int]$Matches[2]
     if ($major -lt 3 -or ($major -eq 3 -and $minor -lt 20)) {
-        throw ('Prerequisite missing: cmake 3.20+ is required by the rational-time harness (ctest --test-dir); found {0}.{1}.' -f $major, $minor)
+        throw ('Prerequisite missing: cmake 3.20+ is required by the scoped harness (ctest --test-dir); found {0}.{1}.' -f $major, $minor)
     }
 }
 
-function Get-DevRationalTimeEnv {
+# ---------------------------------------------------------------------------
+# Local toolchain readiness (Windows MSVC bootstrap)
+#
+# A slice build directory may already be configured for MSVC (CMakeCache.txt
+# selects cl.exe), but the current PowerShell process may not carry the MSVC
+# standard-library environment (INCLUDE/LIB absent), in which case cl.exe runs
+# but cannot find <array> and the build breaks. dev.ps1 must not require the
+# user to manually launch a Developer PowerShell: when its own cache selects
+# MSVC while the process lacks a usable MSVC C++ environment, it initializes
+# the already-installed Visual Studio Build Tools environment by running
+# vcvars64.bat / VsDevCmd.bat and importing only the compiler variables into
+# the current process. Nothing is downloaded or installed. Existing caches
+# that select a non-MSVC toolchain (e.g. GCC/Clang) are never overridden.
+# ---------------------------------------------------------------------------
+
+function Get-DevVsInstallDir {
+    # vswhere-style discovery of an installed Visual Studio with C++ tools.
+    $vswhereCandidates = @()
+    $pf86 = ${env:ProgramFiles(x86)}
+    if ($pf86) {
+        $vswhereCandidates += Join-Path $pf86 'Microsoft Visual Studio\Installer\vswhere.exe'
+    }
+    foreach ($vswhere in $vswhereCandidates) {
+        if (Test-Path -LiteralPath $vswhere) {
+            $lines = @(& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>$null)
+            if ($LASTEXITCODE -eq 0 -and $lines.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($lines[0])) {
+                $dir = $lines[0].Trim()
+                if (Test-Path -LiteralPath (Join-Path $dir 'VC\Auxiliary\Build\vcvars64.bat')) {
+                    return $dir
+                }
+            }
+        }
+    }
+    # Common default install locations (last resort; still no downloads).
+    $common = @(
+        "$env:ProgramFiles\Microsoft Visual Studio\2022\Community",
+        "$env:ProgramFiles\Microsoft Visual Studio\2022\Professional",
+        "$env:ProgramFiles\Microsoft Visual Studio\2022\Enterprise",
+        "$env:ProgramFiles\Microsoft Visual Studio\2022\BuildTools"
+    )
+    if ($pf86) {
+        $common += @(
+            (Join-Path $pf86 'Microsoft Visual Studio\2019\Community'),
+            (Join-Path $pf86 'Microsoft Visual Studio\2019\Professional'),
+            (Join-Path $pf86 'Microsoft Visual Studio\2019\Enterprise'),
+            (Join-Path $pf86 'Microsoft Visual Studio\2019\BuildTools')
+        )
+    }
+    foreach ($dir in $common) {
+        if ($dir -and (Test-Path -LiteralPath (Join-Path $dir 'VC\Auxiliary\Build\vcvars64.bat'))) {
+            return $dir
+        }
+    }
+    return $null
+}
+
+function Find-DevMsvcEnvScript {
+    # Returns the path to vcvars64.bat (or VsDevCmd.bat fallback), or $null.
+    $vsInstall = Get-DevVsInstallDir
+    if ($vsInstall) {
+        $candidate = Join-Path $vsInstall 'VC\Auxiliary\Build\vcvars64.bat'
+        if (Test-Path -LiteralPath $candidate) {
+            return $candidate
+        }
+    }
+    if ($env:VSINSTALLDIR) {
+        $candidate = Join-Path $env:VSINSTALLDIR 'VC\Auxiliary\Build\vcvars64.bat'
+        if (Test-Path -LiteralPath $candidate) {
+            return $candidate
+        }
+    }
+    if ($vsInstall) {
+        $candidate = Join-Path $vsInstall 'Common7\Tools\VsDevCmd.bat'
+        if (Test-Path -LiteralPath $candidate) {
+            return $candidate
+        }
+    }
+    return $null
+}
+
+function Test-DevHasMsvcEnvironment {
+    # True when the current process carries a usable MSVC C++ environment
+    # (INCLUDE present and at least one of its paths exists).
+    $inc = $env:INCLUDE
+    if ([string]::IsNullOrWhiteSpace($inc)) {
+        return $false
+    }
+    foreach ($p in ($inc -split ';')) {
+        if ($p.Trim() -ne '' -and (Test-Path -LiteralPath $p.Trim())) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Test-DevHasUsableCompilerEnvironment {
+    if (Test-DevHasMsvcEnvironment) {
+        return $true
+    }
+    foreach ($name in @('g++', 'gcc', 'clang', 'clang-cl')) {
+        if ($null -ne (Get-DevApplication $name)) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Test-DevCacheSelectsMsvc {
+    param([string]$CachePath)
+    if (-not (Test-Path -LiteralPath $CachePath)) {
+        return $false
+    }
+    try {
+        $raw = Get-Content -LiteralPath $CachePath -Raw
+    } catch {
+        return $false
+    }
+    if ($raw -match '(?m)^CMAKE_CXX_COMPILER_ID:STRING=([^\r\n]+)') {
+        if ($Matches[1].Trim() -eq 'MSVC') {
+            return $true
+        }
+    }
+    if ($raw -match '(?m)^CMAKE_CXX_COMPILER:FILEPATH=([^\r\n]+)') {
+        if ($Matches[1] -match '(?i)cl(\.exe)?\s*$') {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Merge-DevPath {
+    param([string]$Captured, [string]$Current)
+    $seen = @{}
+    $out = @()
+    foreach ($p in $Captured -split ';') {
+        if ($p.Trim() -ne '' -and -not $seen.ContainsKey($p)) {
+            $seen[$p] = $true
+            $out += $p
+        }
+    }
+    foreach ($p in $Current -split ';') {
+        if ($p.Trim() -ne '' -and -not $seen.ContainsKey($p)) {
+            $seen[$p] = $true
+            $out += $p
+        }
+    }
+    return ($out -join ';')
+}
+
+function Initialize-DevMsvcEnvironment {
+    $vcvars = Find-DevMsvcEnvScript
+    if (-not $vcvars) {
+        throw 'Prerequisite missing: the installed Visual Studio Build Tools MSVC environment (vcvars64.bat / VsDevCmd.bat) was not found. Install the "Desktop development with C++" workload, or run dev.ps1 from a Developer PowerShell. No downloads or installs are performed.'
+    }
+    # Capture the environment produced by the script (no Invoke-Expression).
+    $setCmd = 'call "' + $vcvars + '" >nul 2>&1 && set'
+    $output = @(& $env:ComSpec /d /c $setCmd 2>&1)
+    if ($LASTEXITCODE -ne 0) {
+        throw ('Could not initialize the MSVC environment via {0} (exit code {1}).' -f $vcvars, $LASTEXITCODE)
+    }
+    $captured = @{}
+    foreach ($line in $output) {
+        if ($line -is [string]) {
+            $parts = $line -split '=', 2
+            if ($parts.Count -eq 2) {
+                $captured[$parts[0].Trim()] = $parts[1]
+            }
+        }
+    }
+    if (-not $captured.ContainsKey('INCLUDE')) {
+        throw ('MSVC environment script {0} ran but did not set INCLUDE; cannot bootstrap the C++ standard-library environment.' -f $vcvars)
+    }
+    # Import only the needed compiler environment variables (never unrelated
+    # control-plane variables).
+    foreach ($name in @('INCLUDE', 'LIB', 'LIBPATH', 'VSINSTALLDIR', 'VCINSTALLDIR',
+                        'WindowsSdkDir', 'WindowsSDKVersion', 'UCRTVersion',
+                        'UniversalCRTSdkDir', 'WindowsSdkBinPath', 'WindowsSdkVerBinPath')) {
+        if ($captured.ContainsKey($name)) {
+            Set-Item -Path ("Env:" + $name) -Value $captured[$name]
+        }
+    }
+    foreach ($kv in $captured.GetEnumerator()) {
+        if ($kv.Key -like 'VSCMD*') {
+            Set-Item -Path ("Env:" + $kv.Key) -Value $kv.Value
+        }
+    }
+    $capturedPath = if ($captured.ContainsKey('PATH')) { $captured['PATH'] } else { '' }
+    Set-Item -Path 'Env:PATH' -Value (Merge-DevPath -Captured $capturedPath -Current $env:PATH)
+    Write-DevOk ('Initialized the existing local MSVC C++ environment from {0}' -f $vcvars)
+}
+
+function Ensure-DevToolchain {
+    param([Parameter(Mandatory = $true)][string]$BuildDir)
+    $cachePath = Join-Path $BuildDir 'CMakeCache.txt'
+    if (Test-DevCacheSelectsMsvc -CachePath $cachePath) {
+        if (-not (Test-DevHasMsvcEnvironment)) {
+            Write-DevInfo 'Build cache selects MSVC (cl.exe) but the current process has no MSVC C++ environment; initializing the already-installed Visual Studio Build Tools environment.'
+            Initialize-DevMsvcEnvironment
+        }
+        return
+    }
+    if (-not (Test-Path -LiteralPath $cachePath)) {
+        # Fresh configure: make a DETERMINISTIC toolchain selection without
+        # requiring a manually launched Developer PowerShell. The project's
+        # established toolchain is the local Visual Studio Build Tools MSVC;
+        # prefer it whenever it is installed. Only when no MSVC Build Tools
+        # exist do we fall back to the compiler environment already visible on
+        # PATH (GCC/Clang), left exactly as-is.
+        if (-not (Test-DevHasMsvcEnvironment)) {
+            $vcvars = Find-DevMsvcEnvScript
+            if ($vcvars) {
+                Write-DevInfo 'Fresh configure: deterministically selecting the local Visual Studio Build Tools MSVC toolchain.'
+                try {
+                    Initialize-DevMsvcEnvironment
+                } catch {
+                    throw ('Prerequisite missing: no usable C++ toolchain found and the local MSVC environment could not be initialized ({0}). Run dev.ps1 from a Developer PowerShell or install the C++ workload. No downloads or installs are performed.' -f $_.Exception.Message)
+                }
+                if (-not (Test-DevHasMsvcEnvironment)) {
+                    throw 'Prerequisite missing: MSVC environment could not be initialized from the installed Visual Studio Build Tools. No downloads or installs are performed.'
+                }
+            } elseif (-not (Test-DevHasUsableCompilerEnvironment)) {
+                throw 'Prerequisite missing: no usable C++ toolchain found and no local Visual Studio Build Tools MSVC environment to initialize. Install the "Desktop development with C++" workload or run dev.ps1 from a Developer PowerShell. No downloads or installs are performed.'
+            } else {
+                Write-DevInfo 'No local MSVC Build Tools found; using the compiler environment already visible on PATH (GCC/Clang), unchanged.'
+            }
+        }
+        return
+    }
+    # Existing cache selects a non-MSVC toolchain (e.g. GCC/Clang): do not
+    # override it.
+    Write-DevInfo 'Existing build cache selects a non-MSVC toolchain; leaving it unchanged.'
+}
+
+function Get-DevSliceConfig {
+    param([Parameter(Mandatory = $true)][string]$Scope)
+    switch ($Scope.ToLowerInvariant()) {
+        'rational-time' {
+            return [pscustomobject]@{
+                Name         = 'rational-time'
+                BuildDirName = 'rational-time'
+                Target       = 'choirloom_rational_time_tests'
+                CtestRegex   = '^rational_time_tests$'
+                VerifyLabel  = 'M0-001 RationalTime slice'
+            }
+        }
+        'entity-revision' {
+            return [pscustomobject]@{
+                Name         = 'entity-revision'
+                BuildDirName = 'entity-revision'
+                Target       = 'entity_revision_tests'
+                CtestRegex   = '^entity_revision_tests$'
+                VerifyLabel  = 'M0-003 EntityId/Revision primitive'
+            }
+        }
+        default { throw ("Unsupported harness scope '{0}'." -f $Scope) }
+    }
+}
+
+function Get-DevSliceEnv {
+    param([Parameter(Mandatory = $true)][string]$Scope)
+    $cfg = Get-DevSliceConfig -Scope $Scope
     $root = Get-DevRepoRoot
     $cmakeCmd = Get-DevApplication 'cmake'
     if ($null -eq $cmakeCmd) {
-        throw 'Prerequisite missing: cmake was not found on PATH. The M0-002 rational-time harness requires cmake (>= 3.20) and ctest on PATH, with a C++20 toolchain visible to cmake (on Windows, run from a Developer PowerShell / after vcvars). No downloads or installs are performed.'
+        throw 'Prerequisite missing: cmake was not found on PATH. The scoped harness requires cmake (>= 3.20) and ctest on PATH, with a C++20 toolchain visible to cmake (on Windows, run from a Developer PowerShell / after vcvars). No downloads or installs are performed.'
     }
     $ctestCmd = Get-DevApplication 'ctest'
     if ($null -eq $ctestCmd) {
-        throw 'Prerequisite missing: ctest was not found on PATH. The M0-002 rational-time harness requires cmake (>= 3.20) and ctest on PATH. No downloads or installs are performed.'
+        throw 'Prerequisite missing: ctest was not found on PATH. The scoped harness requires cmake (>= 3.20) and ctest on PATH. No downloads or installs are performed.'
     }
     Assert-DevCmakeVersion -CmakePath $cmakeCmd.Source
     $ninjaCmd = Get-DevApplication 'ninja'
@@ -263,7 +531,7 @@ function Get-DevRationalTimeEnv {
     } else {
         $generator = $null  # fall back to the cmake default generator
     }
-    $buildDir = Join-Path $root (Join-Path 'build' (Join-Path 'dev' 'rational-time'))
+    $buildDir = Join-Path $root (Join-Path 'build' (Join-Path 'dev' $cfg.BuildDirName))
     return [pscustomobject]@{
         Root        = $root
         CMake       = $cmakeCmd.Source
@@ -271,11 +539,16 @@ function Get-DevRationalTimeEnv {
         Generator   = $generator
         MakeProgram = $makeProgram
         BuildDir    = $buildDir
+        Target      = $cfg.Target
+        CtestRegex  = $cfg.CtestRegex
+        VerifyLabel = $cfg.VerifyLabel
+        Name        = $cfg.Name
     }
 }
 
-function Invoke-DevRationalTimeConfigure {
+function Invoke-DevSliceConfigure {
     param($Env)
+    Ensure-DevToolchain -BuildDir $Env.BuildDir
     Write-DevInfo ('Repo root (from module location): {0}' -f $Env.Root)
     Write-DevInfo ('Build directory: {0}' -f $Env.BuildDir)
     Write-DevInfo ('Generator: {0}' -f $(if ($Env.Generator) { $Env.Generator } else { '(cmake default)' }))
@@ -288,65 +561,69 @@ function Invoke-DevRationalTimeConfigure {
     }
 }
 
-function Invoke-DevRationalTimeBuildTarget {
+function Invoke-DevSliceBuildTarget {
     param($Env)
-    & $Env.CMake '--build' $Env.BuildDir '--target' 'choirloom_rational_time_tests' '--config' 'Debug'
+    Ensure-DevToolchain -BuildDir $Env.BuildDir
+    & $Env.CMake '--build' $Env.BuildDir '--target' $Env.Target '--config' 'Debug'
     if ($LASTEXITCODE -ne 0) {
-        throw ('cmake build of target choirloom_rational_time_tests failed (exit code {0}).' -f $LASTEXITCODE)
+        throw ('cmake build of target {0} failed (exit code {1}).' -f $Env.Target, $LASTEXITCODE)
     }
 }
 
-function Invoke-DevRationalTimeCtest {
+function Invoke-DevSliceCtest {
     param($Env)
     # Zero-match guard: dry-run count must be exactly 1 for the scope.
-    $countOut = & $Env.CTest '--test-dir' $Env.BuildDir '-N' '-R' '^rational_time_tests$' 2>&1 | Out-String
+    $countOut = & $Env.CTest '--test-dir' $Env.BuildDir '-N' '-R' $Env.CtestRegex 2>&1 | Out-String
     $countRc = $LASTEXITCODE
     $count = 0
     if ($countRc -eq 0) {
         $count = @([regex]::Matches($countOut, 'Test\s*#\s*\d+\s*:')).Count
     }
     if ($count -ne 1) {
-        throw ('ctest found {0} matching test(s) for scope ''rational-time'' (regex ^rational_time_tests$); expected exactly 1. CTest dry-run exit code: {1}.' -f $count, $countRc)
+        throw ('ctest found {0} matching test(s) for scope ''{1}'' (regex {2}); expected exactly 1. CTest dry-run exit code: {3}.' -f $count, $Env.Name, $Env.CtestRegex, $countRc)
     }
-    & $Env.CTest '--test-dir' $Env.BuildDir '--output-on-failure' '-R' '^rational_time_tests$'
+    & $Env.CTest '--test-dir' $Env.BuildDir '--output-on-failure' '-R' $Env.CtestRegex
     if ($LASTEXITCODE -ne 0) {
         throw ('ctest failed (exit code {0}).' -f $LASTEXITCODE)
     }
-    Write-DevOk ('RationalTime test suite passed (exactly {0} CTest test(s) ran).' -f $count)
+    Write-DevOk ('{0} test suite passed (exactly {1} CTest test(s) ran).' -f $Env.Name, $count)
 }
 
-function Invoke-DevBuildRationalTime {
-    Write-DevInfo 'Scope: rational-time (M0-002 harness; CMake/CTest only).'
-    $rt = Get-DevRationalTimeEnv
-    Invoke-DevRationalTimeConfigure -Env $rt
-    Invoke-DevRationalTimeBuildTarget -Env $rt
-    Write-DevOk 'Build succeeded: scope rational-time (test target choirloom_rational_time_tests only).'
-    Write-DevInfo 'Scope is limited to the RationalTime slice; no full product build is configured.'
+function Invoke-DevBuildSlice {
+    param([Parameter(Mandatory = $true)][string]$Scope)
+    Write-DevInfo ('Scope: {0} (scoped harness; CMake/CTest only).' -f $Scope)
+    $env = Get-DevSliceEnv -Scope $Scope
+    Invoke-DevSliceConfigure -Env $env
+    Invoke-DevSliceBuildTarget -Env $env
+    Write-DevOk ('Build succeeded: scope {0} (test target {1} only).' -f $Scope, $env.Target)
+    Write-DevInfo 'Scope is limited to the slice test target; no full product build is configured.'
 }
 
-function Invoke-DevTestRationalTime {
-    Write-DevInfo 'Scope: rational-time (M0-002 harness; configures/builds first, then runs CTest).'
-    $rt = Get-DevRationalTimeEnv
-    Invoke-DevRationalTimeConfigure -Env $rt
-    Invoke-DevRationalTimeBuildTarget -Env $rt
-    Invoke-DevRationalTimeCtest -Env $rt
+function Invoke-DevTestSlice {
+    param([Parameter(Mandatory = $true)][string]$Scope)
+    Write-DevInfo ('Scope: {0} (scoped harness; configures/builds first, then runs CTest).' -f $Scope)
+    $env = Get-DevSliceEnv -Scope $Scope
+    Invoke-DevSliceConfigure -Env $env
+    Invoke-DevSliceBuildTarget -Env $env
+    Invoke-DevSliceCtest -Env $env
 }
 
-function Invoke-DevVerifyRationalTime {
-    Write-DevInfo 'Scope: rational-time (build + test gate).'
-    $rt = Get-DevRationalTimeEnv
-    Invoke-DevRationalTimeConfigure -Env $rt
-    Invoke-DevRationalTimeBuildTarget -Env $rt
-    Invoke-DevRationalTimeCtest -Env $rt
+function Invoke-DevVerifySlice {
+    param([Parameter(Mandatory = $true)][string]$Scope)
+    Write-DevInfo ('Scope: {0} (build + test gate).' -f $Scope)
+    $env = Get-DevSliceEnv -Scope $Scope
+    Invoke-DevSliceConfigure -Env $env
+    Invoke-DevSliceBuildTarget -Env $env
+    Invoke-DevSliceCtest -Env $env
 
     # Control-plane dispatch checks (negative paths only: missing/unknown/extra
-    # scope). The dispatch script is told to skip its own rational-time success
-    # cases, so this never recurses into `verify`; it only re-invokes dev.ps1
-    # for the failing-argument paths and asserts non-zero exit. Any failure
-    # makes this verify fail. The script runs in a child PowerShell process so
-    # its `exit` code is captured reliably (an in-process `&` call does not
-    # propagate a script's exit code to the caller).
-    $dispatchScript = Join-Path $rt.Root (Join-Path 'tests' (Join-Path 'dev' 'dispatch.tests.ps1'))
+    # scope). The dispatch script is told to skip its own success cases, so this
+    # never recurses into `verify`; it only re-invokes dev.ps1 for the
+    # failing-argument paths and asserts non-zero exit. Any failure makes this
+    # verify fail. The script runs in a child PowerShell process so its `exit`
+    # code is captured reliably (an in-process `&` call does not propagate a
+    # script's exit code to the caller).
+    $dispatchScript = Join-Path $env.Root (Join-Path 'tests' (Join-Path 'dev' 'dispatch.tests.ps1'))
     if (-not (Test-Path -LiteralPath $dispatchScript)) {
         throw ('Control-plane dispatch script not found: {0}' -f $dispatchScript)
     }
@@ -355,7 +632,7 @@ function Invoke-DevVerifyRationalTime {
         $psPath = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh' } else { 'powershell' }
     }
     Write-DevInfo ('Running control-plane dispatch checks: {0} (negative-path mode)...' -f $dispatchScript)
-    $dispatchOut = & $psPath -NoProfile -ExecutionPolicy Bypass -File $dispatchScript -SkipRationalTimeSuccess *>&1 | Out-String
+    $dispatchOut = & $psPath -NoProfile -ExecutionPolicy Bypass -File $dispatchScript -SkipSuccessCases *>&1 | Out-String
     $dispatchRc = $LASTEXITCODE
     Write-Host $dispatchOut.TrimEnd()
     if ($dispatchRc -ne 0) {
@@ -366,8 +643,8 @@ function Invoke-DevVerifyRationalTime {
     }
 
     Write-DevHeader 'verify result'
-    Write-DevOk 'M0-001 RationalTime slice verification passed.'
-    Write-DevWarn 'Full M0 milestone gate remains OPEN: this slice covers only the rational-time harness scope (dev.ps1 build|test|verify rational-time). Not addressed by this slice: full M0 harness, ScoreIR fixture/schema harness, CI, project SQLite migration/revision primitives, and WinUI host gates.'
+    Write-DevOk ('{0} verification passed.' -f $env.VerifyLabel)
+    Write-DevWarn ('Full M0 milestone gate remains OPEN: this slice covers only the {0} harness scope (dev.ps1 build|test|verify {0}). Not addressed by this slice: full M0 harness, ScoreIR fixture/schema harness, CI, project SQLite migration/revision primitives, and WinUI host gates.' -f $Scope)
 }
 
 function Invoke-DevRemote {

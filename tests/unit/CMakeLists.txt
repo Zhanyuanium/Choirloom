@@ -1,10 +1,12 @@
 # ============================================================================
-# tests/unit/CMakeLists.txt - M0-001 RationalTime slice unit tests (CTest).
+# tests/unit/CMakeLists.txt - M0-001/M0-003 slice unit tests (CTest).
 #
-# Part of the M0-002 rational-time harness: the `rational_time_tests` target is
-# registered here and run by `dev.ps1 test|verify rational-time`. Build
-# artifacts are disposable and live under build/dev/rational-time. This is a
-# scoped harness target, not a full product test pipeline.
+# Registers the M0-002 `rational_time_tests` scope and the M0-003
+# `entity_revision_tests` scope. Targets are run by
+#   dev.ps1 test|verify rational-time
+#   dev.ps1 test|verify entity-revision
+# Build artifacts are disposable and live under build/dev/<scope>. These are
+# scoped harness targets, not a full product test pipeline.
 # ============================================================================
 
 add_executable(choirloom_rational_time_tests
@@ -31,3 +33,24 @@ else()
 endif()
 
 add_test(NAME rational_time_tests COMMAND choirloom_rational_time_tests)
+
+# --- M0-003 entity-revision scope --------------------------------------------
+add_executable(entity_revision_tests
+    entity_revision_tests.cpp
+)
+
+target_link_libraries(entity_revision_tests PRIVATE choirloom_score)
+
+target_compile_features(entity_revision_tests PRIVATE cxx_std_20)
+
+target_compile_definitions(entity_revision_tests PRIVATE
+    CHOIRLOOM_TEST_SOURCE_DIR="${CHOIRLOOM_TEST_SOURCE_DIR}"
+)
+
+if(MSVC)
+    target_compile_options(entity_revision_tests PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(entity_revision_tests PRIVATE -Wall -Wextra -pedantic)
+endif()
+
+add_test(NAME entity_revision_tests COMMAND entity_revision_tests)

@@ -147,10 +147,11 @@ The unit test executable (`tests/unit/rational_time_tests.cpp`) now:
   `kMax/3 + (kMax-2)/3 == 6148914691236517204` (unreduced numerator exceeds
   int64 while the reduced result fits), `int64_min / int64_min == 1`).
 
-## 8. Build / validation status (M0-002)
+## 8. Build / validation status (scoped harness; M0-002/M0-003)
 
-- The project control plane (`dev.ps1`) now implements **scoped M0-002
-  harness commands** for this slice:
+- The project control plane (`dev.ps1`) now implements **scoped harness
+  commands** for this slice (the M0-002 `rational-time` scope; the sibling
+  M0-003 `entity-revision` scope is documented in `docs/entity-revision-notes.md`):
   - `dev.ps1 build rational-time` — configure + build the RationalTime test
     target (CMake/CTest only);
   - `dev.ps1 test rational-time` — configure + build first, then run exactly
@@ -166,16 +167,22 @@ The unit test executable (`tests/unit/rational_time_tests.cpp`) now:
   - A missing or unknown scope, and every other verb/scope, exit non-zero
     with usage/prerequisite text. There is no default scope and no
     all/core/scoreir aliases.
-- Prerequisites: `cmake` (>= 3.20) and `ctest` on PATH, with a C++20 toolchain
-  visible to cmake (on Windows: a Developer PowerShell / vcvars environment).
-  Ninja is used when available. No downloads, installs, remote, network, or
-  model use.
+- Prerequisites: `cmake` (>= 3.20) and `ctest` on PATH. On Windows, `dev.ps1`
+  initializes the **already-installed** Visual Studio Build Tools MSVC C++
+  environment itself when its build cache selects MSVC but the process lacks
+  the MSVC standard-library environment (vcvars64.bat / VsDevCmd.bat
+  discovery; no manual Developer PowerShell launch required). A fresh
+  configure deterministically selects that local MSVC toolchain when
+  installed; an existing non-MSVC cache is left unchanged. Ninja is used when
+  available. No downloads, installs, remote, network, or model use.
 - The build directory is the deterministic, git-ignored
   `build/dev/rational-time`. CMake/CTest is the **current harness toolchain**
   for this slice; it is no longer described merely as a local diagnostic.
 - This is **not** a full product build/test pipeline and no full M0 harness,
   ScoreIR fixture/schema harness, CI, migration/revision, or WinUI gates are
-  claimed. `dev.ps1` remains NotImplemented for all other scopes.
+  claimed. `dev.ps1` implements exactly the harness scopes `rational-time`
+  (M0-002) and `entity-revision` (M0-003); all other scopes and verbs remain
+  `NotImplemented`.
 
 ## 9. Scope guardrails for this slice
 
