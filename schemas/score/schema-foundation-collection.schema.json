@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "choirloom:score/schema-foundation-collection/0.1.0",
+  "title": "SchemaFoundationGoldenCollection",
+  "version": "0.1.0",
+  "description": "Envelope for tests/golden/schema_foundation.samples.json. Each case has a 'name', a 'kind' from a fixed enum that selects the wire shape of 'value', and an optional 'note'. The value shape for every kind is constrained below. DRAFT / NON-FROZEN.",
+  "type": "object",
+  "required": ["cases"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "kind", "value"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "schema-version",
+              "malformed-version",
+              "version-order",
+              "schema-id",
+              "malformed-schema-id",
+              "schema-document-id",
+              "malformed-document-id",
+              "registered-document-id",
+              "entry",
+              "edge",
+              "compat",
+              "lookup",
+              "plan",
+              "inspect"
+            ]
+          },
+          "value": {}
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "kind": { "const": "schema-version" } }, "required": ["kind"] },
+            "then": { "properties": { "value": { "type": "string" } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "malformed-version" } }, "required": ["kind"] },
+            "then": { "properties": { "value": { "type": "string" } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "version-order" } }, "required": ["kind"] },
+            "then": { "properties": { "value": { "type": "array", "items": { "type": "string" }, "minItems": 2 } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "schema-id" } }, "required": ["kind"] },
+            "then": { "properties": { "value": { "type": "string" } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "malformed-schema-id" } }, "required": ["kind"] },
+            "then": { "properties": { "value": { "type": "string" } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "schema-document-id" } }, "required": ["kind"] },
+            "then": { "properties": { "value": { "type": "string" } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "malformed-document-id" } }, "required": ["kind"] },
+            "then": { "properties": { "value": { "type": "string" } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "registered-document-id" } }, "required": ["kind"] },
+            "then": { "properties": { "value": { "type": "string" } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "entry" } }, "required": ["kind"] },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "object",
+                  "required": ["schemaId", "schemaVersion", "documentId", "path", "status"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "schemaId": { "type": "string" },
+                    "schemaVersion": { "type": "string" },
+                    "documentId": { "type": "string" },
+                    "path": { "type": "string" },
+                    "status": { "type": "string", "enum": ["Draft", "Stable", "Deprecated"] }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "edge" } }, "required": ["kind"] },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "object",
+                  "required": ["from", "to", "kind"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "from": { "type": "string" },
+                    "to": { "type": "string" },
+                    "kind": { "type": "string", "enum": ["readable", "migration"] }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "compat" } }, "required": ["kind"] },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "object",
+                  "required": ["schemaId", "from", "to", "expected"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "schemaId": { "type": "string" },
+                    "from": { "type": "string" },
+                    "to": { "type": "string" },
+                    "expected": { "type": "string", "enum": ["Exact", "Readable", "RequiresMigration", "Unsupported"] }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "lookup" } }, "required": ["kind"] },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "object",
+                  "required": ["schemaId", "version", "expectedDiagnostic"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "schemaId": { "type": "string" },
+                    "version": { "type": "string" },
+                    "expectedDiagnostic": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "plan" } }, "required": ["kind"] },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "object",
+                  "required": ["from", "to", "expectedSteps", "expectedDiagnostic"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "from": { "type": "string" },
+                    "to": { "type": "string" },
+                    "expectedSteps": { "type": "integer", "minimum": 0 },
+                    "expectedDiagnostic": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "inspect" } }, "required": ["kind"] },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "object",
+                  "required": ["schemaId", "expectedDiagnostic"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "schemaId": { "type": "string" },
+                    "version": { "type": "string" },
+                    "expectedDiagnostic": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

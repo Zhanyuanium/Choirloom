@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "choirloom:score/schema-version/0.1.0",
+  "title": "SchemaVersion",
+  "version": "0.1.0",
+  "description": "Canonical wire form of choirloom::score::SchemaVersion - strict 'major.minor.patch' with non-negative uint32-like components, no leading zeros (except 0), exactly three segments, no prerelease/build metadata. Distinct nominal concept (never a ProjectRevision/ModelVersion/ApplicationVersion/Git SHA/SQLite store-schema version). DRAFT / NON-FROZEN. Two-level validation: this schema enforces the syntactic pattern only; exact uint32 range is enforced by the core (SchemaVersion::from_string).",
+  "type": "string",
+  "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+}

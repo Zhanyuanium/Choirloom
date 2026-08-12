@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "choirloom:score/schema-document-id/0.1.0",
+  "title": "SchemaDocumentId",
+  "version": "0.1.0",
+  "description": "Canonical wire form of choirloom::score::SchemaDocumentId - the complete existing JSON Schema $id, canonical '<SchemaId>/<SchemaVersion>'. Parsing/roundtrip must validate that relation (a valid SchemaId plus a valid SchemaVersion). DRAFT / NON-FROZEN. Two-level validation: this schema enforces the syntactic pattern only; exact relation semantics are enforced by the core (SchemaDocumentId::from_string).",
+  "type": "string",
+  "pattern": "^choirloom:score/[a-z0-9]+(-[a-z0-9]+)*/(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+}

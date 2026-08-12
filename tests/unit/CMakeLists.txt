@@ -54,3 +54,24 @@ else()
 endif()
 
 add_test(NAME entity_revision_tests COMMAND entity_revision_tests)
+
+# --- M0-004 schema-foundation scope ------------------------------------------
+add_executable(schema_foundation_tests
+    schema_foundation_tests.cpp
+)
+
+target_link_libraries(schema_foundation_tests PRIVATE choirloom_score)
+
+target_compile_features(schema_foundation_tests PRIVATE cxx_std_20)
+
+target_compile_definitions(schema_foundation_tests PRIVATE
+    CHOIRLOOM_TEST_SOURCE_DIR="${CHOIRLOOM_TEST_SOURCE_DIR}"
+)
+
+if(MSVC)
+    target_compile_options(schema_foundation_tests PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(schema_foundation_tests PRIVATE -Wall -Wextra -pedantic)
+endif()
+
+add_test(NAME schema_foundation_tests COMMAND schema_foundation_tests)

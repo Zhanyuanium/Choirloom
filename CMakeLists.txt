@@ -1,9 +1,10 @@
 # ============================================================================
-# Root CMake configuration for the M0-001/M0-002/M0-003 portable-core slices.
+# Root CMake configuration for the M0-001..M0-004 portable-core slices.
 #
 # Purpose: the current HARNESS TOOLCHAIN for the scoped control-plane commands:
-#   dev.ps1 build|test|verify rational-time   (M0-001/M0-002)
-#   dev.ps1 build|test|verify entity-revision (M0-003)
+#   dev.ps1 build|test|verify rational-time     (M0-001/M0-002)
+#   dev.ps1 build|test|verify entity-revision   (M0-003)
+#   dev.ps1 build|test|verify schema-foundation (M0-004)
 # which call cmake/ctest against deterministic, git-ignored build directories
 # under build/dev/. This is NOT a full product build/test pipeline: it builds
 # and tests only the portable-core slice test targets, and it is not a CI gate.

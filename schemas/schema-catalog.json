@@ -1,0 +1,19 @@
+{
+  "$schema": "choirloom:score/schema-catalog/0.1.0",
+  "catalogFormatVersion": 1,
+  "description": "Source-of-truth declarative schema catalog INSTANCE (M0-004). This is the catalog instance, not the schema document; its $schema binds it to the catalog schema document (choirloom:score/schema-catalog/0.1.0) and it deliberately carries no $id of its own (no document-identity conflict with schema-catalog.schema.json). Registers every schema file under schemas/score/ (the six pre-existing M0-001/M0-003 schemas plus the M0-004 schema-foundation schemas). Paths are repo-relative and source-tree only. Compatibility/migration is driven exclusively by the explicit 'rules' below (currently none; all registered versions are 0.1.0). This catalog is validated by dev.ps1 test|verify schema-foundation.",
+  "entries": [
+    { "schemaId": "choirloom:score/rational-time",              "schemaVersion": "0.1.0", "documentId": "choirloom:score/rational-time/0.1.0",              "path": "schemas/score/rational-time.schema.json",              "status": "Draft" },
+    { "schemaId": "choirloom:score/rational-time-collection",   "schemaVersion": "0.1.0", "documentId": "choirloom:score/rational-time-collection/0.1.0",   "path": "schemas/score/rational-time-collection.schema.json",   "status": "Draft" },
+    { "schemaId": "choirloom:score/entity-id",                  "schemaVersion": "0.1.0", "documentId": "choirloom:score/entity-id/0.1.0",                  "path": "schemas/score/entity-id.schema.json",                  "status": "Draft" },
+    { "schemaId": "choirloom:score/revision-id",                "schemaVersion": "0.1.0", "documentId": "choirloom:score/revision-id/0.1.0",                "path": "schemas/score/revision-id.schema.json",                "status": "Draft" },
+    { "schemaId": "choirloom:score/project-revision-metadata",  "schemaVersion": "0.1.0", "documentId": "choirloom:score/project-revision-metadata/0.1.0",  "path": "schemas/score/project-revision-metadata.schema.json",  "status": "Draft" },
+    { "schemaId": "choirloom:score/entity-revision-collection", "schemaVersion": "0.1.0", "documentId": "choirloom:score/entity-revision-collection/0.1.0", "path": "schemas/score/entity-revision-collection.schema.json", "status": "Draft" },
+    { "schemaId": "choirloom:score/schema-version",             "schemaVersion": "0.1.0", "documentId": "choirloom:score/schema-version/0.1.0",             "path": "schemas/score/schema-version.schema.json",             "status": "Draft" },
+    { "schemaId": "choirloom:score/schema-id",                  "schemaVersion": "0.1.0", "documentId": "choirloom:score/schema-id/0.1.0",                  "path": "schemas/score/schema-id.schema.json",                  "status": "Draft" },
+    { "schemaId": "choirloom:score/schema-document-id",         "schemaVersion": "0.1.0", "documentId": "choirloom:score/schema-document-id/0.1.0",         "path": "schemas/score/schema-document-id.schema.json",         "status": "Draft" },
+    { "schemaId": "choirloom:score/schema-catalog",             "schemaVersion": "0.1.0", "documentId": "choirloom:score/schema-catalog/0.1.0",             "path": "schemas/score/schema-catalog.schema.json",             "status": "Draft" },
+    { "schemaId": "choirloom:score/schema-foundation-collection", "schemaVersion": "0.1.0", "documentId": "choirloom:score/schema-foundation-collection/0.1.0", "path": "schemas/score/schema-foundation-collection.schema.json", "status": "Draft" }
+  ],
+  "rules": []
+}

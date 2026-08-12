@@ -44,8 +44,9 @@ decision requires an ADR (see §9).
 **Implemented** (control plane). `.\dev.ps1` is a thin entry point; all logic
 lives in `tools/dev/Dev.psm1`. Windows PowerShell 5.1 compatible. Implemented
 operations: `doctor` (read-only) and the scoped harness commands
-`build|test|verify rational-time` (M0-001/M0-002) and
-`build|test|verify entity-revision` (M0-003), which invoke local CMake/CTest
+`build|test|verify rational-time` (M0-001/M0-002),
+`build|test|verify entity-revision` (M0-003), and
+`build|test|verify schema-foundation` (M0-004), which invoke local CMake/CTest
 only and write disposable build artifacts under `build/dev/<scope>`. Every
 other verb/scope reports `NotImplemented:` or a prerequisite message and exits
 non-zero — nothing fakes success. Missing scope yields a Usage error; an
@@ -63,9 +64,9 @@ Contract:
 | Verb | Status | Purpose |
 |---|---|---|
 | `doctor` | Implemented | Read-only environment/repo diagnostics (PowerShell, pwsh, git, repo layout; optional OhMy CLI and ssh reported but never failing; remote config validation and read-only remote probe when configured). Never writes files. |
-| `build <scope>` | Implemented for scopes `rational-time` (M0-002) and `entity-revision` (M0-003) | Configures and builds the scope's test target via local CMake (deterministic git-ignored build dir `build/dev/<scope>`). Any other or missing scope exits non-zero with usage/prerequisite text; no default scope. |
-| `test <scope>` | Implemented for scopes `rational-time` and `entity-revision` | Configures + builds first, then runs exactly one CTest test per scope (`rational_time_tests` / `entity_revision_tests`) with `--output-on-failure`; a zero-match or multiple-match fails. Other or missing scopes exit non-zero. |
-| `verify <scope>` | Implemented for scopes `rational-time` and `entity-revision` | Runs the build + test gate, then the non-recursive control-plane dispatch checks (negative paths); on success emits scoped language (e.g. "M0-003 EntityId/Revision primitive verification passed") and states the full M0 milestone gate remains open. Any failure exits non-zero. |
+| `build <scope>` | Implemented for scopes `rational-time` (M0-002), `entity-revision` (M0-003), `schema-foundation` (M0-004) | Configures and builds the scope's test target via local CMake (deterministic git-ignored build dir `build/dev/<scope>`). Any other or missing scope exits non-zero with usage/prerequisite text; no default scope. |
+| `test <scope>` | Implemented for scopes `rational-time`, `entity-revision`, `schema-foundation` | Configures + builds first, then runs exactly one CTest test per scope (`rational_time_tests` / `entity_revision_tests` / `schema_foundation_tests`) with `--output-on-failure`; a zero-match or multiple-match fails. Other or missing scopes exit non-zero. |
+| `verify <scope>` | Implemented for scopes `rational-time`, `entity-revision`, `schema-foundation` | Runs the build + test gate, then the non-recursive control-plane dispatch checks (negative paths); on success emits scoped language (e.g. "M0-004 Schema foundation verification passed") and states the full M0 milestone gate remains open. Any failure exits non-zero. |
 | `remote setup` | Implemented (interactive) | Interactive wizard (entry gated by `-Confirm`, interactive-only): collects non-secret fields into `.dev/remote.local.json` (git-ignored); optional explicitly-confirmed local `ssh-keygen`; shows public key + suggested ssh config stanza but **never writes SSH config**, never copies/transfers a private key, never runs a remote probe. |
 | `remote doctor` | Implemented | Read-only; requires `.dev/remote.local.json` + ssh; fixed safe probes only (hostname/uname/python/nvidia-smi/base directory). |
 | `remote submit/status/logs/cancel/fetch-report/fetch-model` | `NotImplemented` | Stable CLI contract; executor-side runner protocol is future (§5). Exit non-zero with a prerequisite message. |
@@ -225,8 +226,9 @@ The repository currently contains:
 - `spec/v0.1/` — the Frozen Baseline;
 - `dev.ps1` + `tools/dev/Dev.psm1` — the dev control plane (see §4): `doctor`
   implemented (read-only), scoped harness commands
-  `build|test|verify rational-time` (M0-001/M0-002) and
-  `build|test|verify entity-revision` (M0-003) implemented (local CMake/CTest
+  `build|test|verify rational-time` (M0-001/M0-002),
+  `build|test|verify entity-revision` (M0-003), and
+  `build|test|verify schema-foundation` (M0-004) implemented (local CMake/CTest
   only), `remote setup` interactive wizard implemented (local config only;
   optional user-confirmed local key generation; never writes SSH config),
   `remote doctor` implemented (read-only), all other remote/model verbs
@@ -239,6 +241,11 @@ The repository currently contains:
   slice CMake target, `tests/unit/entity_revision_tests.cpp`, golden fixture
   and draft wire schemas, and `docs/entity-revision-notes.md` (draft,
   non-frozen);
+- the M0-004 Schema/Versioning Foundation slice:
+  `core/score/schema_foundation.{h,cpp}` + slice CMake target,
+  `tests/unit/schema_foundation_tests.cpp`, the source-of-truth catalog
+  `schemas/schema-catalog.json`, golden fixture and draft wire schemas, and
+  `docs/schema-foundation-notes.md` (draft, non-frozen);
 - `.dev/remote.example.json` — committed secret-free remote config template;
 - `tools/dev/remote/README.md` — remote workflow documentation (English);
 - `.opencode/` control-plane files listed in §2;

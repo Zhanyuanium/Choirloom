@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "choirloom:score/schema-catalog/0.1.0",
+  "title": "SchemaCatalog",
+  "version": "0.1.0",
+  "description": "Declarative schema catalog wire form (source of truth: schemas/schema-catalog.json). The catalog has its own catalogFormatVersion (not an entry SchemaVersion). Entries carry schemaId, schemaVersion, documentId, a repo-relative path, and a status {Draft, Stable, Deprecated}. Optional 'rules' declare explicit directional compatibility/migration edges (readable = additive non-breaking, migration = requires conversion); compatibility is never inferred from semver. DRAFT / NON-FROZEN. Two-level validation: this schema enforces the syntactic shape; duplicate-tuple/path/documentId, path traversal/absolute paths, on-disk $id/version matching, and local $ref resolution are enforced by the core (validate_catalog / validate_catalog_files).",
+  "type": "object",
+  "required": ["$schema", "catalogFormatVersion", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "choirloom:score/schema-catalog/0.1.0",
+      "description": "The catalog INSTANCE binds to the catalog schema document via this $schema value. The instance must NOT carry its own $id (additionalProperties: false rejects it)."
+    },
+    "catalogFormatVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["schemaId", "schemaVersion", "documentId", "path", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "schemaId": {
+            "$ref": "choirloom:score/schema-id/0.1.0"
+          },
+          "schemaVersion": {
+            "$ref": "choirloom:score/schema-version/0.1.0"
+          },
+          "documentId": {
+            "$ref": "choirloom:score/schema-document-id/0.1.0"
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_./-]+$",
+            "description": "Repo-relative path (forward slashes, source tree only). The core additionally rejects absolute paths and '..' traversal."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Draft", "Stable", "Deprecated"]
+          }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "kind"],
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "$ref": "choirloom:score/schema-document-id/0.1.0"
+          },
+          "to": {
+            "$ref": "choirloom:score/schema-document-id/0.1.0"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["readable", "migration"]
+          }
+        }
+      }
+    }
+  }
+}

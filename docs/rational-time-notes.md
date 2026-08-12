@@ -181,7 +181,8 @@ The unit test executable (`tests/unit/rational_time_tests.cpp`) now:
 - This is **not** a full product build/test pipeline and no full M0 harness,
   ScoreIR fixture/schema harness, CI, migration/revision, or WinUI gates are
   claimed. `dev.ps1` implements exactly the harness scopes `rational-time`
-  (M0-002) and `entity-revision` (M0-003); all other scopes and verbs remain
+  (M0-002), `entity-revision` (M0-003), and `schema-foundation` (M0-004,
+  see `docs/schema-foundation-notes.md`); all other scopes and verbs remain
   `NotImplemented`.
 
 ## 9. Scope guardrails for this slice

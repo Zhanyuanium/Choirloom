@@ -40,7 +40,13 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $devPs1   = Join-Path $repoRoot 'dev.ps1'
-$scopes   = @('rational-time', 'entity-revision')
+$scopes   = @('rational-time', 'entity-revision', 'schema-foundation')
+
+$expectedVerifyLabel = @{
+    'rational-time'     = 'M0-001 RationalTime slice verification passed'
+    'entity-revision'   = 'M0-003 EntityId/Revision primitive verification passed'
+    'schema-foundation' = 'M0-004 Schema foundation verification passed'
+}
 
 $failures = 0
 $skipped  = 0
@@ -146,13 +152,9 @@ if ($SkipSuccessCases) {
             Assert-Exit -Expected 0 -Actual $rc -What ("verify {0}" -f $scope)
 
             # Exact scoped verification language per scope (never generic).
-            $expectedLabel = if ($scope -eq 'rational-time') {
-                'M0-001 RationalTime slice verification passed'
-            } else {
-                'M0-003 EntityId/Revision primitive verification passed'
-            }
+            $expectedLabel = $expectedVerifyLabel[$scope]
             $script:checks++
-            if ($out -match [regex]::Escape($expectedLabel)) {
+            if ($expectedLabel -and $out -match [regex]::Escape($expectedLabel)) {
                 Write-Host ("ok   dispatch: verify {0} emits exact scoped language ''{1}''" -f $scope, $expectedLabel)
             } else {
                 $script:failures++

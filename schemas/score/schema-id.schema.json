@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "choirloom:score/schema-id/0.1.0",
+  "title": "SchemaId",
+  "version": "0.1.0",
+  "description": "Canonical wire form of choirloom::score::SchemaId - a stable format-family identity WITHOUT a version, canonical 'choirloom:score/<kebab-name>'. It is neither a file path nor a complete $id. DRAFT / NON-FROZEN. Two-level validation: this schema enforces the syntactic pattern only; exact semantics are enforced by the core (SchemaId::from_string).",
+  "type": "string",
+  "pattern": "^choirloom:score/[a-z0-9]+(-[a-z0-9]+)*$"
+}

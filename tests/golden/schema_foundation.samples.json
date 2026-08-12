@@ -1,0 +1,76 @@
+{
+  "$schema": "../../schemas/score/schema-foundation-collection.schema.json",
+  "description": "Golden samples for M0-004 Schema/Versioning Foundation. 'schema-version'/'schema-id'/'schema-document-id' parse+roundtrip; 'malformed-*' must throw; 'version-order' asserts ascending component order; 'entry'/'edge' build the synthetic catalog used by the pure compat/lookup/plan functions; 'compat'/'lookup'/'plan' assert exact structured results; 'registered-document-id' must be registered in the real source-of-truth catalog (schemas/schema-catalog.json).",
+  "cases": [
+    { "name": "version-0-0-0",    "kind": "schema-version",      "value": "0.0.0" },
+    { "name": "version-0-1-0",    "kind": "schema-version",      "value": "0.1.0" },
+    { "name": "version-1-2-3",    "kind": "schema-version",      "value": "1.2.3" },
+    { "name": "version-uint32-max", "kind": "schema-version",    "value": "4294967295.0.0" },
+    { "name": "version-order",    "kind": "version-order",       "value": ["0.0.0", "0.1.0", "0.1.1", "0.2.0", "1.0.0", "10.0.0"] },
+    { "name": "malformed-version-leading-zero", "kind": "malformed-version", "value": "01.0.0" },
+    { "name": "malformed-version-two-segments", "kind": "malformed-version", "value": "1.2" },
+    { "name": "malformed-version-four-segments", "kind": "malformed-version", "value": "1.2.3.4" },
+    { "name": "malformed-version-prerelease",   "kind": "malformed-version", "value": "1.2.3-beta" },
+    { "name": "malformed-version-build",        "kind": "malformed-version", "value": "1.2.3+build" },
+    { "name": "malformed-version-negative",     "kind": "malformed-version", "value": "-1.0.0" },
+    { "name": "malformed-version-empty",        "kind": "malformed-version", "value": "" },
+    { "name": "malformed-version-overflow",     "kind": "malformed-version", "value": "4294967296.0.0" },
+
+    { "name": "schema-id-rt",   "kind": "schema-id", "value": "choirloom:score/rational-time" },
+    { "name": "schema-id-catalog", "kind": "schema-id", "value": "choirloom:score/schema-catalog" },
+    { "name": "schema-id-kebab", "kind": "schema-id", "value": "choirloom:score/a1-b2" },
+    { "name": "malformed-schema-id-noprefix", "kind": "malformed-schema-id", "value": "rational-time" },
+    { "name": "malformed-schema-id-empty-name", "kind": "malformed-schema-id", "value": "choirloom:score/" },
+    { "name": "malformed-schema-id-upper", "kind": "malformed-schema-id", "value": "choirloom:score/UPPER" },
+    { "name": "malformed-schema-id-double-hyphen", "kind": "malformed-schema-id", "value": "choirloom:score/a--b" },
+    { "name": "malformed-schema-id-leading-hyphen", "kind": "malformed-schema-id", "value": "choirloom:score/-a" },
+
+    { "name": "document-id-rt",     "kind": "schema-document-id", "value": "choirloom:score/rational-time/0.1.0" },
+    { "name": "document-id-catalog", "kind": "schema-document-id", "value": "choirloom:score/schema-catalog/0.1.0" },
+    { "name": "malformed-document-id-no-version", "kind": "malformed-document-id", "value": "choirloom:score/rational-time" },
+    { "name": "malformed-document-id-short-version", "kind": "malformed-document-id", "value": "choirloom:score/rational-time/0.1" },
+    { "name": "malformed-document-id-bad-version", "kind": "malformed-document-id", "value": "choirloom:score/rational-time/01.0.0" },
+
+    { "name": "registered-rational-time",             "kind": "registered-document-id", "value": "choirloom:score/rational-time/0.1.0" },
+    { "name": "registered-rational-time-collection",  "kind": "registered-document-id", "value": "choirloom:score/rational-time-collection/0.1.0" },
+    { "name": "registered-entity-id",                 "kind": "registered-document-id", "value": "choirloom:score/entity-id/0.1.0" },
+    { "name": "registered-revision-id",               "kind": "registered-document-id", "value": "choirloom:score/revision-id/0.1.0" },
+    { "name": "registered-project-revision-metadata", "kind": "registered-document-id", "value": "choirloom:score/project-revision-metadata/0.1.0" },
+    { "name": "registered-entity-revision-collection", "kind": "registered-document-id", "value": "choirloom:score/entity-revision-collection/0.1.0" },
+    { "name": "registered-schema-catalog",            "kind": "registered-document-id", "value": "choirloom:score/schema-catalog/0.1.0" },
+
+    { "name": "entry-rt-010", "kind": "entry", "value": { "schemaId": "choirloom:score/rational-time", "schemaVersion": "0.1.0", "documentId": "choirloom:score/rational-time/0.1.0", "path": "schemas/score/synthetic-rt-0.1.0.schema.json", "status": "Draft" } },
+    { "name": "entry-rt-020", "kind": "entry", "value": { "schemaId": "choirloom:score/rational-time", "schemaVersion": "0.2.0", "documentId": "choirloom:score/rational-time/0.2.0", "path": "schemas/score/synthetic-rt-0.2.0.schema.json", "status": "Draft" } },
+    { "name": "entry-rt-100", "kind": "entry", "value": { "schemaId": "choirloom:score/rational-time", "schemaVersion": "1.0.0", "documentId": "choirloom:score/rational-time/1.0.0", "path": "schemas/score/synthetic-rt-1.0.0.schema.json", "status": "Draft" } },
+    { "name": "entry-rt-110", "kind": "entry", "value": { "schemaId": "choirloom:score/rational-time", "schemaVersion": "1.1.0", "documentId": "choirloom:score/rational-time/1.1.0", "path": "schemas/score/synthetic-rt-1.1.0.schema.json", "status": "Draft" } },
+
+    { "name": "edge-readable-010-020",  "kind": "edge", "value": { "from": "choirloom:score/rational-time/0.1.0", "to": "choirloom:score/rational-time/0.2.0", "kind": "readable" } },
+    { "name": "edge-migration-020-100", "kind": "edge", "value": { "from": "choirloom:score/rational-time/0.2.0", "to": "choirloom:score/rational-time/1.0.0", "kind": "migration" } },
+    { "name": "edge-migration-100-110", "kind": "edge", "value": { "from": "choirloom:score/rational-time/1.0.0", "to": "choirloom:score/rational-time/1.1.0", "kind": "migration" } },
+
+    { "name": "compat-exact",           "kind": "compat", "value": { "schemaId": "choirloom:score/rational-time", "from": "0.1.0", "to": "0.1.0", "expected": "Exact" } },
+    { "name": "compat-readable",        "kind": "compat", "value": { "schemaId": "choirloom:score/rational-time", "from": "0.1.0", "to": "0.2.0", "expected": "Readable" } },
+    { "name": "compat-requires-migration", "kind": "compat", "value": { "schemaId": "choirloom:score/rational-time", "from": "0.2.0", "to": "1.0.0", "expected": "RequiresMigration" } },
+    { "name": "compat-unsupported-no-edge", "kind": "compat", "value": { "schemaId": "choirloom:score/rational-time", "from": "0.1.0", "to": "1.1.0", "expected": "Unsupported" } },
+    { "name": "compat-unsupported-unknown-version", "kind": "compat", "value": { "schemaId": "choirloom:score/rational-time", "from": "0.1.0", "to": "0.3.0", "expected": "Unsupported" } },
+
+    { "name": "lookup-exact",             "kind": "lookup", "value": { "schemaId": "choirloom:score/rational-time", "version": "0.1.0", "expectedDiagnostic": "" } },
+    { "name": "lookup-unknown-schema",    "kind": "lookup", "value": { "schemaId": "choirloom:score/unknown-thing", "version": "0.1.0", "expectedDiagnostic": "unknown-schema" } },
+    { "name": "lookup-unknown-version",   "kind": "lookup", "value": { "schemaId": "choirloom:score/rational-time", "version": "0.3.0", "expectedDiagnostic": "unknown-schema-version" } },
+    { "name": "lookup-future-version",    "kind": "lookup", "value": { "schemaId": "choirloom:score/rational-time", "version": "99.0.0", "expectedDiagnostic": "unsupported-future-version" } },
+
+    { "name": "plan-same",            "kind": "plan", "value": { "from": "choirloom:score/rational-time/0.1.0", "to": "choirloom:score/rational-time/0.1.0", "expectedSteps": 0, "expectedDiagnostic": "" } },
+    { "name": "plan-migration-chain", "kind": "plan", "value": { "from": "choirloom:score/rational-time/0.2.0", "to": "choirloom:score/rational-time/1.1.0", "expectedSteps": 2, "expectedDiagnostic": "" } },
+    { "name": "plan-readable-only",   "kind": "plan", "value": { "from": "choirloom:score/rational-time/0.1.0", "to": "choirloom:score/rational-time/0.2.0", "expectedSteps": 0, "expectedDiagnostic": "missing-migration-edge" } },
+    { "name": "plan-no-edge",         "kind": "plan", "value": { "from": "choirloom:score/rational-time/0.1.0", "to": "choirloom:score/rational-time/1.0.0", "expectedSteps": 0, "expectedDiagnostic": "missing-migration-edge" } },
+    { "name": "plan-future-target",   "kind": "plan", "value": { "from": "choirloom:score/rational-time/0.1.0", "to": "choirloom:score/rational-time/5.0.0", "expectedSteps": 0, "expectedDiagnostic": "unsupported-future-version" } },
+
+    { "name": "inspect-ok",               "kind": "inspect", "value": { "schemaId": "choirloom:score/rational-time", "version": "0.1.0", "expectedDiagnostic": "" } },
+    { "name": "inspect-missing-version",  "kind": "inspect", "value": { "schemaId": "choirloom:score/rational-time", "expectedDiagnostic": "missing-schema-version" } },
+    { "name": "inspect-malformed-version", "kind": "inspect", "value": { "schemaId": "choirloom:score/rational-time", "version": "1.2", "expectedDiagnostic": "malformed-schema-version" } },
+    { "name": "inspect-overflow-version", "kind": "inspect", "value": { "schemaId": "choirloom:score/rational-time", "version": "4294967296.0.0", "expectedDiagnostic": "schema-version-out-of-range" } },
+    { "name": "inspect-unknown-schema",   "kind": "inspect", "value": { "schemaId": "choirloom:score/unknown-thing", "version": "0.1.0", "expectedDiagnostic": "unknown-schema" } },
+    { "name": "inspect-future-version",   "kind": "inspect", "value": { "schemaId": "choirloom:score/rational-time", "version": "99.0.0", "expectedDiagnostic": "unsupported-future-version" } },
+    { "name": "inspect-unknown-version",  "kind": "inspect", "value": { "schemaId": "choirloom:score/rational-time", "version": "0.3.0", "expectedDiagnostic": "unknown-schema-version" } }
+  ]
+}

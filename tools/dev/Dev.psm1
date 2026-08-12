@@ -170,10 +170,11 @@ function Invoke-DevBuild {
         throw 'Usage: dev.ps1 build <scope>. A scope is required; supported scopes: rational-time, entity-revision. There is no default build scope.'
     }
     switch ($Scope.ToLowerInvariant()) {
-        'rational-time'   { Invoke-DevBuildSlice -Scope 'rational-time'; return }
-        'entity-revision' { Invoke-DevBuildSlice -Scope 'entity-revision'; return }
+        'rational-time'    { Invoke-DevBuildSlice -Scope 'rational-time'; return }
+        'entity-revision'  { Invoke-DevBuildSlice -Scope 'entity-revision'; return }
+        'schema-foundation' { Invoke-DevBuildSlice -Scope 'schema-foundation'; return }
         default {
-            throw ("Unknown build scope '{0}'. Supported scopes: rational-time, entity-revision. No all/core/scoreir aliases are defined." -f $Scope)
+            throw ("Unknown build scope '{0}'. Supported scopes: rational-time, entity-revision, schema-foundation. No all/core/scoreir aliases are defined." -f $Scope)
         }
     }
 }
@@ -185,10 +186,11 @@ function Invoke-DevTest {
         throw 'Usage: dev.ps1 test <scope>. A scope is required; supported scopes: rational-time, entity-revision. There is no default test scope.'
     }
     switch ($Scope.ToLowerInvariant()) {
-        'rational-time'   { Invoke-DevTestSlice -Scope 'rational-time'; return }
-        'entity-revision' { Invoke-DevTestSlice -Scope 'entity-revision'; return }
+        'rational-time'    { Invoke-DevTestSlice -Scope 'rational-time'; return }
+        'entity-revision'  { Invoke-DevTestSlice -Scope 'entity-revision'; return }
+        'schema-foundation' { Invoke-DevTestSlice -Scope 'schema-foundation'; return }
         default {
-            throw ("Unknown test scope '{0}'. Supported scopes: rational-time, entity-revision. No all/core/scoreir aliases are defined." -f $Scope)
+            throw ("Unknown test scope '{0}'. Supported scopes: rational-time, entity-revision, schema-foundation. No all/core/scoreir aliases are defined." -f $Scope)
         }
     }
 }
@@ -200,10 +202,11 @@ function Invoke-DevVerify {
         throw 'Usage: dev.ps1 verify <scope>. A scope is required; supported scopes: rational-time, entity-revision. There is no default verify scope.'
     }
     switch ($Scope.ToLowerInvariant()) {
-        'rational-time'   { Invoke-DevVerifySlice -Scope 'rational-time'; return }
-        'entity-revision' { Invoke-DevVerifySlice -Scope 'entity-revision'; return }
+        'rational-time'    { Invoke-DevVerifySlice -Scope 'rational-time'; return }
+        'entity-revision'  { Invoke-DevVerifySlice -Scope 'entity-revision'; return }
+        'schema-foundation' { Invoke-DevVerifySlice -Scope 'schema-foundation'; return }
         default {
-            throw ("Unknown verify scope '{0}'. Supported scopes: rational-time, entity-revision. No all/core/scoreir aliases are defined." -f $Scope)
+            throw ("Unknown verify scope '{0}'. Supported scopes: rational-time, entity-revision, schema-foundation. No all/core/scoreir aliases are defined." -f $Scope)
         }
     }
 }
@@ -504,6 +507,15 @@ function Get-DevSliceConfig {
                 Target       = 'entity_revision_tests'
                 CtestRegex   = '^entity_revision_tests$'
                 VerifyLabel  = 'M0-003 EntityId/Revision primitive'
+            }
+        }
+        'schema-foundation' {
+            return [pscustomobject]@{
+                Name         = 'schema-foundation'
+                BuildDirName = 'schema-foundation'
+                Target       = 'schema_foundation_tests'
+                CtestRegex   = '^schema_foundation_tests$'
+                VerifyLabel  = 'M0-004 Schema foundation'
             }
         }
         default { throw ("Unsupported harness scope '{0}'." -f $Scope) }

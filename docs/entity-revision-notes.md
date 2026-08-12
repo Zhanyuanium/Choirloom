@@ -180,8 +180,9 @@ stating the full M0 milestone gate remains open. See
 
 ## 9. Build / validation status
 
-- Implemented harness scopes: `rational-time` (M0-001/M0-002) and
-  `entity-revision` (M0-003). All other verbs/scopes report
+- Implemented harness scopes: `rational-time` (M0-001/M0-002),
+  `entity-revision` (M0-003), and `schema-foundation` (M0-004,
+  see `docs/schema-foundation-notes.md`). All other verbs/scopes report
   `NotImplemented:` or a prerequisite message and exit non-zero.
 - Prerequisites: `cmake` (>= 3.20) and `ctest` on PATH. On Windows, `dev.ps1`
   initializes the **already-installed** Visual Studio Build Tools MSVC C++
