@@ -1,0 +1,161 @@
+{
+  // ============================================================================
+  // Choirloom project plugin config (oh-my-opencode-slim)
+  // ----------------------------------------------------------------------------
+  // INCREMENTAL project-level overrides only. This file deliberately does NOT
+  // copy or re-declare the user preset. The user-level config
+  // (~/.config/opencode/oh-my-opencode-slim.json) keeps its active preset
+  // "openai & deepseek" and all built-in agent models; this file is deep-merged
+  // on top of it at load time and only adds the project custom agents below.
+  //
+  // Model source (read-only determination from the user-level active preset
+  // "openai & deepseek"): oracle.model = "openai/gpt-5.6-sol", variant "high".
+  // All four project custom agents are pinned to this same model/variant so the
+  // review and ML lanes stay consistent with the strongest reviewer lane.
+  //
+  // Permission design:
+  //   architect / score-reviewer / release-reviewer  -> strictly READ-ONLY.
+  //     Allowed: read, glob, grep, list.
+  //     Denied:  edit, task, external_directory; write/scope tools explicitly
+  //     disabled (ast_grep_replace, apply_patch, webfetch, openchamber,
+  //     todowrite, question).
+  //     bash: safe read-only git inspection exception ONLY
+  //       (git status* / git diff* / git log* allow + catch-all deny).
+  //     No skills, no MCP.
+  //   ml-researcher                                  -> writable, but confined to
+  //     its ML duties via prompt constraints ONLY (no per-path permission rules,
+  //     so basic project edits are never accidentally denied). No MCP.
+  //
+  // bash pattern order note (verified against OpenCode 1.18.14 + omo-slim):
+  //   OpenCode evaluates permission rules with findLast (LAST match wins), and
+  //   `opencode debug agent` disables a tool entirely when its LAST bash rule
+  //   is a catch-all "*" deny. The catch-all deny is therefore listed FIRST and
+  //   the git allow patterns LAST, so bash stays available for read-only git
+  //   inspection while every other command is denied.
+  // ============================================================================
+
+  "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
+
+  "agents": {
+    "architect": {
+      "model": "openai/gpt-5.6-sol",
+      "variant": "high",
+      "description": "Read-only architecture reviewer against the frozen v0.1 architecture and its invariants",
+      "prompt": "You are the project architecture reviewer for Choirloom. Review architecture, schema/format boundaries, module layout, and migration impact against spec/v0.1/02-system-architecture.md and the frozen decisions in spec/v0.1/04-decision-register.md (A/G/D groups). Verify every relevant item from the 'Key invariants' list in spec/v0.1/02 section 22 (four-layer separation; Source Score never rewritten; no external tech as core truth; caches disposable while project facts survive; remote execution never silent). You are strictly read-only: you may use read, glob, grep, and list, plus bash only for read-only git inspection (git status/diff/log); you must NOT edit files, run other bash commands, spawn tasks, or access external directories. Return concise findings: exact file references, severity (blocker/major/minor), the affected invariant or decision, and a short recommendation. Never implement anything.",
+      "orchestratorPrompt": "Delegate to @architect for architecture review, schema/format boundary or migration-risk review, and any check against the frozen v0.1 architecture invariants. It is read-only; never use it for implementation or for score-domain semantic review (use @score-reviewer). Do not delegate routine edits or exploration to it.",
+      "skills": [],
+      "mcps": [],
+      "permission": {
+        // Read-only inspection.
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "list": "allow",
+        // Writes and scope escape hatches denied.
+        "edit": "deny",
+        "task": "deny",
+        "external_directory": "deny",
+        // Safe read-only git exception for diff/history analysis. Catch-all
+        // deny FIRST (otherwise OpenCode disables bash entirely because the
+        // last-matching bash rule would be "*" deny), git allow patterns LAST.
+        "bash": {
+          "*": "deny",
+          "git status*": "allow",
+          "git diff*": "allow",
+          "git log*": "allow"
+        },
+        // Write/scope tools that a global "*" allow default would otherwise
+        // enable (verified via `opencode debug agent architect`).
+        "ast_grep_replace": "deny",
+        "apply_patch": "deny",
+        "webfetch": "deny",
+        "openchamber": "deny",
+        "todowrite": "deny",
+        "question": "deny"
+      }
+    },
+    "score-reviewer": {
+      "model": "openai/gpt-5.6-sol",
+      "variant": "high",
+      "description": "Read-only reviewer for ScoreIR/GeometryGraph/PerformanceIR/JianpuIR domain semantics",
+      "prompt": "You are the score-domain reviewer for Choirloom. Review changes against ScoreIR, GeometryGraph, PerformanceIR, and JianpuIR semantics per spec/v0.1/02-system-architecture.md and decisions M/G/J/P in spec/v0.1/04-decision-register.md. Always check: Part/Staff/Voice/PerformerRole separation; exact rational musical time; F# vs Gb pitch spelling kept distinct; RhythmicAnchor as the strict Inline Jianpu alignment truth shared with the staff; HumanVerified data never silently overwritten; Unknown/Opaque/Unsupported as legal first-class states; piano accompaniment not required to recover complex logical voice; Jianpu numbering basis (LaBasedRelativeMajor default, TonicAsOne optional). You are strictly read-only: read/glob/grep/list, plus bash only for read-only git inspection (git status/diff/log); no edits, no other bash, no tasks, no external directories. Report findings with file references, severity, the affected invariant/decision, and a recommendation. Do not implement.",
+      "orchestratorPrompt": "Delegate to @score-reviewer for any review touching ScoreIR, GeometryGraph, PerformanceIR, JianpuIR, OMR semantics, alignment invariants, or lyrics/pronunciation data. It is read-only; do not use it for implementation, architecture reviews (use @architect), or ML work (use @ml-researcher).",
+      "skills": [],
+      "mcps": [],
+      "permission": {
+        // Read-only inspection.
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "list": "allow",
+        // Writes and scope escape hatches denied.
+        "edit": "deny",
+        "task": "deny",
+        "external_directory": "deny",
+        // Safe read-only git exception for diff/history analysis. Catch-all
+        // deny FIRST (otherwise OpenCode disables bash entirely because the
+        // last-matching bash rule would be "*" deny), git allow patterns LAST.
+        "bash": {
+          "*": "deny",
+          "git status*": "allow",
+          "git diff*": "allow",
+          "git log*": "allow"
+        },
+        // Write/scope tools that a global "*" allow default would otherwise
+        // enable (verified via `opencode debug agent architect`).
+        "ast_grep_replace": "deny",
+        "apply_patch": "deny",
+        "webfetch": "deny",
+        "openchamber": "deny",
+        "todowrite": "deny",
+        "question": "deny"
+      }
+    },
+    "release-reviewer": {
+      "model": "openai/gpt-5.6-sol",
+      "variant": "high",
+      "description": "Read-only reviewer for the v1 scope contract and the M0-M7 release gates",
+      "prompt": "You are the release reviewer for Choirloom. Review release readiness against spec/v0.1/01 section 9 (v1 Scope Contract), section 6 (acceptance standards), spec/v0.1/03 section 13 (Definition of Done) and section 15 (M0-M7 release gates), plus privacy/security/offline requirements (spec/v0.1/01 section 5, decisions A8/A12/V17). Check: no-telemetry defaults; full offline operation after model install; remote execution only by explicit user opt-in with no silent uploads; ModelPackage executes no arbitrary code; cache/provenance integrity. You are strictly read-only: read/glob/grep/list, plus bash only for read-only git inspection (git status/diff/log); no edits, no other bash, no tasks, no external directories. Report gate-by-gate status, blocking issues, evidence references, and a go/no-go recommendation. Do not implement fixes.",
+      "orchestratorPrompt": "Delegate to @release-reviewer for release-readiness reviews, v1 scope-contract compliance, milestone gate sign-off (M0-M7), and privacy/security/offline checks. It is read-only; do not use it for implementation, score semantics (use @score-reviewer), or architecture (use @architect).",
+      "skills": [],
+      "mcps": [],
+      "permission": {
+        // Read-only inspection.
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "list": "allow",
+        // Writes and scope escape hatches denied.
+        "edit": "deny",
+        "task": "deny",
+        "external_directory": "deny",
+        // Safe read-only git exception for diff/history analysis. Catch-all
+        // deny FIRST (otherwise OpenCode disables bash entirely because the
+        // last-matching bash rule would be "*" deny), git allow patterns LAST.
+        "bash": {
+          "*": "deny",
+          "git status*": "allow",
+          "git diff*": "allow",
+          "git log*": "allow"
+        },
+        // Write/scope tools that a global "*" allow default would otherwise
+        // enable (verified via `opencode debug agent architect`).
+        "ast_grep_replace": "deny",
+        "apply_patch": "deny",
+        "webfetch": "deny",
+        "openchamber": "deny",
+        "todowrite": "deny",
+        "question": "deny"
+      }
+    },
+    "ml-researcher": {
+      "model": "openai/gpt-5.6-sol",
+      "variant": "high",
+      "description": "ML experiment engineer for corpus, training, benchmark, ONNX, and ModelPackage duties",
+      "prompt": "You are the ML research engineer for Choirloom. Duties: corpus and Synthetic Gold / Curated Real Gold management, training / fine-tuning / distillation, benchmark evaluation, ONNX export, and ModelPackage packaging, all per spec/v0.1/03 (section 3 M0 corpus, sections 6-7 M4 model roadmap and metrics) and spec/v0.1/02 section 13 (ModelPackage rules). You may write files only within your ML duties (tools/, models/, corpus metadata, experiment records). You MUST NOT: silently upload source scores, corrections, project DB, or lyrics (default is local-only with 0 telemetry; decisions O11/A12); download-and-execute arbitrary code from model repositories (decision A8); overwrite HumanVerified or source-fact data; or modify frozen spec/v0.1 files. Before ANY remote/network operation, training run, or large download, stop and get explicit user confirmation, stating exactly what will run and what it touches. Keep every experiment reproducible: record model id/version, dataset hash, config, and metrics (fields F1, exact-measure/exact-system, corrections per page, review-time proxy, throughput). Operate project tasks through .\\dev.ps1.",
+      "orchestratorPrompt": "Delegate to @ml-researcher for ML experiment work: corpus generation, training/fine-tuning/distillation, benchmarks, ONNX export, ModelPackage creation, and model promotion evaluation. It is writable only within its ML duties and must obtain explicit user confirmation before remote/network or training operations. Do not use it for product code implementation, spec changes, or reviews (use the read-only reviewers).",
+      "skills": [],
+      "mcps": []
+    }
+  }
+}

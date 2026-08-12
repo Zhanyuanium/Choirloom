@@ -67,3 +67,12 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Choirloom dev control plane
+# Local-only remote config (git-ignored; never contains secrets)
+.dev/remote.local.json
+# Remote artifacts fetched by dev.ps1 remote fetch-*
+.dev/remote/artifacts/
+# Private key material must never be committed; *.pub is intentionally NOT ignored
+*.key
+*.pem

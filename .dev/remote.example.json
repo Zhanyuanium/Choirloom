@@ -1,0 +1,8 @@
+{
+  "host": "example-runner.example.com",
+  "user": "choirloom",
+  "port": 22,
+  "remoteBaseDirectory": "/srv/choirloom/remote",
+  "sshAlias": "",
+  "identityFile": ""
+}
