@@ -41,11 +41,17 @@ decision requires an ADR (see §9).
 
 ## 4. Operations Interface: `.\dev.ps1`
 
-**Implemented** (pre-M0 control plane). `.\dev.ps1` is a thin entry point; all
-logic lives in `tools/dev/Dev.psm1`. Windows PowerShell 5.1 compatible. The
-repository has **no product build/test/harness/training pipeline yet**, so the
-build/test/verify/model verbs accurately report **Not Implemented** and exit
-non-zero — nothing fakes success.
+**Implemented** (control plane). `.\dev.ps1` is a thin entry point; all logic
+lives in `tools/dev/Dev.psm1`. Windows PowerShell 5.1 compatible. Implemented
+operations: `doctor` (read-only) and the scoped M0-002 harness commands
+`build|test|verify rational-time`, which invoke local CMake/CTest only and
+write disposable build artifacts under `build/dev/rational-time`. Every other
+verb/scope reports `NotImplemented:` or a prerequisite message and exits
+non-zero — nothing fakes success. Missing scope yields a Usage error; an
+unknown scope yields an Unknown scope error; extra scope arguments are
+rejected (exactly one scope argument is accepted). The full product/M0
+harness, ScoreIR fixture/schema harness, CI, migration/revision primitives,
+and WinUI host gates remain open.
 
 Contract:
 
@@ -56,13 +62,21 @@ Contract:
 | Verb | Status | Purpose |
 |---|---|---|
 | `doctor` | Implemented | Read-only environment/repo diagnostics (PowerShell, pwsh, git, repo layout; optional OhMy CLI and ssh reported but never failing; remote config validation and read-only remote probe when configured). Never writes files. |
-| `build <scope>` | `NotImplemented` | Reports no build system exists yet; exits non-zero. |
-| `test <scope>` | `NotImplemented` | Reports no test harness exists yet; exits non-zero. |
-| `verify <scope>` | `NotImplemented` | Reports no verification harness exists yet; exits non-zero. |
+| `build <scope>` | Implemented for scope `rational-time` only (M0-002) | Configures and builds the RationalTime test target via local CMake (build dir `build/dev/rational-time`, deterministic and git-ignored). Any other or missing scope exits non-zero with usage/prerequisite text; no default scope. |
+| `test <scope>` | Implemented for scope `rational-time` only (M0-002) | Configures + builds first, then runs exactly the CTest `rational_time_tests` test with `--output-on-failure`; a zero-match fails. Other or missing scopes exit non-zero. |
+| `verify <scope>` | Implemented for scope `rational-time` only (M0-002) | Runs the build + test gate for the scope; on success emits scoped language (e.g. "M0-001 RationalTime slice verification passed") and states the full M0 milestone gate remains open. Any failure exits non-zero. |
 | `remote setup` | Implemented (interactive) | Interactive wizard (entry gated by `-Confirm`, interactive-only): collects non-secret fields into `.dev/remote.local.json` (git-ignored); optional explicitly-confirmed local `ssh-keygen`; shows public key + suggested ssh config stanza but **never writes SSH config**, never copies/transfers a private key, never runs a remote probe. |
 | `remote doctor` | Implemented | Read-only; requires `.dev/remote.local.json` + ssh; fixed safe probes only (hostname/uname/python/nvidia-smi/base directory). |
 | `remote submit/status/logs/cancel/fetch-report/fetch-model` | `NotImplemented` | Stable CLI contract; executor-side runner protocol is future (§5). Exit non-zero with a prerequisite message. |
 | `model validate/benchmark <path>` | `NotImplemented` | Stable CLI contract; path existence is checked, then reports no validator/benchmark harness; exits non-zero. |
+
+The M0-002 `rational-time` harness prerequisites: `cmake` (>= 3.20) and
+`ctest` on PATH, plus a C++20 toolchain visible to cmake (on Windows, a
+Developer PowerShell / vcvars environment); Ninja is used when available.
+It invokes local CMake/CTest only, never downloads, installs, or uses
+remote/model/network, and works from any working directory (repo root is
+resolved from the module location). This is a scoped harness, not a full
+product build/test pipeline and not a CI gate.
 
 All long-running jobs must be cancellable/resumable/stage-retryable per
 `spec/v0.1/02 §14` (future, once real jobs exist). Agents and commands must
@@ -202,17 +216,25 @@ The repository currently contains:
 
 - `spec/v0.1/` — the Frozen Baseline;
 - `dev.ps1` + `tools/dev/Dev.psm1` — the dev control plane (see §4): `doctor`
-  implemented (read-only), `remote setup` interactive wizard implemented (local
-  config only; optional user-confirmed local key generation; never writes SSH
-  config), `remote doctor` implemented (read-only), all other remote/model
-  verbs stable `NotImplemented`;
+  implemented (read-only), scoped M0-002 harness commands
+  `build|test|verify rational-time` implemented (local CMake/CTest only),
+  `remote setup` interactive wizard implemented (local config only; optional
+  user-confirmed local key generation; never writes SSH config), `remote
+  doctor` implemented (read-only), all other remote/model verbs stable
+  `NotImplemented`;
+- the M0-001 RationalTime slice: `core/score/rational_time.{h,cpp}` + slice
+  CMake targets, `tests/unit/rational_time_tests.cpp`, golden fixture and
+  draft wire schemas under `tests/golden/` and `schemas/score/`, and
+  `docs/rational-time-notes.md` (draft, non-frozen);
 - `.dev/remote.example.json` — committed secret-free remote config template;
 - `tools/dev/remote/README.md` — remote workflow documentation (English);
 - `.opencode/` control-plane files listed in §2;
 - `.gitignore`, `LICENSE`.
 
-There is **no product code**, no CLI/harness, no CI, no schemas or model
-packages, and no ADRs. Everything in §§5–8 described as a target is **Not
+There is **no full M0 harness or CI**: the scoped `rational-time` commands
+are not a full product build/test pipeline, and there is no ScoreIR
+fixture/schema harness, CI, project SQLite migration/revision primitives,
+WinUI host, or ADRs yet. Everything in §§5–8 described as a target is **Not
 Implemented** and must not be reported as existing.
 
 The next milestone is **M0 — Architecture & Corpus Foundation**

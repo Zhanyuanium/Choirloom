@@ -1,11 +1,11 @@
 # ============================================================================
-# core/score/CMakeLists.txt — M0-001 RationalTime slice build target.
+# core/score/CMakeLists.txt - M0-001 RationalTime slice build target.
 #
-# This is a NARROWLY SCOPED LOCAL BUILD SETUP for the first portable-core
-# vertical slice. It is NOT the project build system: the repository has no
-# product build/harness pipeline yet (dev.ps1 build/test/verify report
-# NotImplemented until M0). This file exists so the slice can be compiled and
-# tested with CMake/CTest as a LOCAL COMPILER DIAGNOSTIC only.
+# Part of the M0-002 harness: the only CMake target configured for the
+# rational-time scope. It is built by the control plane via
+#   dev.ps1 build|test|verify rational-time
+# which writes disposable build artifacts under build/dev/rational-time.
+# This is NOT a full product build pipeline, and no CI gate is implied.
 # ============================================================================
 
 add_library(choirloom_score STATIC

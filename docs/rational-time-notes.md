@@ -6,7 +6,7 @@
   (`spec/v0.1/`) and does not modify it. It is also **not** the full M0
   schema migration gate: adopting this representation into the ScoreIR
   schema is a separate M0/M1 deliverable.
-- Lane owner: fixer (implementation + local compiler diagnostic). Project
+- Lane owner: fixer (implementation + harness/control-plane checks). Project
   control-plane validation is owned by the orchestrator.
 
 ## 1. Why this primitive exists
@@ -144,20 +144,38 @@ The unit test executable (`tests/unit/rational_time_tests.cpp`) now:
   zero/negative denominator, non-reduced input, out-of-int64 wire values);
 - covers arithmetic regressions for final-representable overflow cases
   (`1/6000000006 + 1/6000000009 == 1333333335/4000000010000000006`,
-  `kMax/2 + kMax/2 == kMax - 1`, `int64_min / int64_min == 1`).
+  `kMax/3 + (kMax-2)/3 == 6148914691236517204` (unreduced numerator exceeds
+  int64 while the reduced result fits), `int64_min / int64_min == 1`).
 
-## 8. Build / validation status
+## 8. Build / validation status (M0-002)
 
-- The project control plane (`dev.ps1`) has **no** product build/test harness
-  yet: `build`, `test`, and `verify` report `NotImplemented` until M0
-  (see `spec/development-workflow.md S4`). They were run and their exact
-  output is recorded in the lane report; they must NOT be reported as
-  passing.
-- A **narrowly scoped local build setup** (root `CMakeLists.txt`,
-  `core/score/CMakeLists.txt`, `tests/unit/CMakeLists.txt`, CTest) is
-  provided so the slice can be compiled and run on any machine with a C++20
-  toolchain. It is a **local compiler diagnostic only** and is explicitly NOT
-  project validation.
+- The project control plane (`dev.ps1`) now implements **scoped M0-002
+  harness commands** for this slice:
+  - `dev.ps1 build rational-time` — configure + build the RationalTime test
+    target (CMake/CTest only);
+  - `dev.ps1 test rational-time` — configure + build first, then run exactly
+    the `rational_time_tests` CTest test with output-on-failure (a zero-match
+    fails);
+  - `dev.ps1 verify rational-time` — build + test gate; on success it reports
+    scoped language such as "M0-001 RationalTime slice verification passed"
+    and states that the full M0 milestone gate remains open. It also runs the
+    control-plane dispatch checks (`tests/dev/dispatch.tests.ps1`,
+    negative-path mode: missing/unknown/extra scope arguments must exit
+    non-zero) and reports their check count; any dispatch failure fails the
+    verify gate.
+  - A missing or unknown scope, and every other verb/scope, exit non-zero
+    with usage/prerequisite text. There is no default scope and no
+    all/core/scoreir aliases.
+- Prerequisites: `cmake` (>= 3.20) and `ctest` on PATH, with a C++20 toolchain
+  visible to cmake (on Windows: a Developer PowerShell / vcvars environment).
+  Ninja is used when available. No downloads, installs, remote, network, or
+  model use.
+- The build directory is the deterministic, git-ignored
+  `build/dev/rational-time`. CMake/CTest is the **current harness toolchain**
+  for this slice; it is no longer described merely as a local diagnostic.
+- This is **not** a full product build/test pipeline and no full M0 harness,
+  ScoreIR fixture/schema harness, CI, migration/revision, or WinUI gates are
+  claimed. `dev.ps1` remains NotImplemented for all other scopes.
 
 ## 9. Scope guardrails for this slice
 

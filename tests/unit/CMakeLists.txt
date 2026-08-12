@@ -1,6 +1,10 @@
 # ============================================================================
-# tests/unit/CMakeLists.txt — M0-001 RationalTime slice unit tests (CTest).
-# Local compiler diagnostic only; NOT project validation (see root CMakeLists).
+# tests/unit/CMakeLists.txt - M0-001 RationalTime slice unit tests (CTest).
+#
+# Part of the M0-002 rational-time harness: the `rational_time_tests` target is
+# registered here and run by `dev.ps1 test|verify rational-time`. Build
+# artifacts are disposable and live under build/dev/rational-time. This is a
+# scoped harness target, not a full product test pipeline.
 # ============================================================================
 
 add_executable(choirloom_rational_time_tests

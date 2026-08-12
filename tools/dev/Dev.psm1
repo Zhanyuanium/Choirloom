@@ -5,16 +5,20 @@
 #  All complex logic lives here; dev.ps1 is a thin entry point.
 #  Written for Windows PowerShell 5.1 compatibility (also runs on pwsh 7+).
 #
-#  The repository currently has NO build system, NO test/verify harness and NO
-#  training/runner pipeline (baseline is spec-only, pre-M0 implementation).
+#  Implemented operations (M0-002): doctor (read-only), and the scoped harness
+#  commands `build|test|verify rational-time`, which invoke local CMake/CTest
+#  only and write disposable build artifacts under build/dev/rational-time.
+#  The full product/M0 harness, ScoreIR fixture/schema harness, CI,
+#  migration/revision primitives and WinUI host gates remain open.
 #  Every operation that is not yet backed by a real implementation MUST fail
-#  with an explicit "NotImplemented:" message and its prerequisite.  It must
-#  NEVER fake success.
+#  with an explicit "NotImplemented:" or prerequisite message. It must NEVER
+#  fake success.
 #
 #  This module never edits SSH config and never copies or transfers private
-#  keys. The only mutating action anywhere is the OPTIONAL, explicitly
-#  user-confirmed `ssh-keygen` step inside `remote setup`; everything else is
-#  read-only. Remote diagnostics are strictly read-only.
+#  keys. The scoped harness writes only disposable artifacts under build/.
+#  The only other mutating action is the OPTIONAL, explicitly user-confirmed
+#  `ssh-keygen` step inside `remote setup`; remote diagnostics are strictly
+#  read-only.
 # ============================================================================
 
 Set-StrictMode -Version Latest
@@ -161,25 +165,209 @@ function Invoke-DevDoctor {
 function Invoke-DevBuild {
     param([string]$Scope)
     Write-DevHeader 'build'
-    $scopeText = if ([string]::IsNullOrWhiteSpace($Scope)) { '(default)' } else { $Scope }
-    Write-DevInfo ('Scope: {0}' -f $scopeText)
-    throw 'NotImplemented: there is no build system in this repository yet (baseline is spec-only, pre-M0). Prerequisite: add a build system + harness (see spec/v0.1/03-development-plan.md, M0 deliverables) before build can pass.'
+    if ([string]::IsNullOrWhiteSpace($Scope)) {
+        throw 'Usage: dev.ps1 build <scope>. A scope is required: only explicit scope "rational-time" is implemented (M0-002 RationalTime harness). There is no default build scope.'
+    }
+    if ($Scope.ToLowerInvariant() -eq 'rational-time') {
+        Invoke-DevBuildRationalTime
+        return
+    }
+    throw ("Unknown build scope '{0}'. Only scope 'rational-time' is supported (M0-002 RationalTime harness). No all/core/scoreir aliases are defined." -f $Scope)
 }
 
 function Invoke-DevTest {
     param([string]$Scope)
     Write-DevHeader 'test'
-    $scopeText = if ([string]::IsNullOrWhiteSpace($Scope)) { '(default)' } else { $Scope }
-    Write-DevInfo ('Scope: {0}' -f $scopeText)
-    throw 'NotImplemented: there is no test harness in this repository yet (baseline is spec-only, pre-M0). Prerequisite: harness + fixture infrastructure (spec/v0.1/03-development-plan.md §12) before test can pass.'
+    if ([string]::IsNullOrWhiteSpace($Scope)) {
+        throw 'Usage: dev.ps1 test <scope>. A scope is required: only explicit scope "rational-time" is implemented (M0-002 RationalTime harness). There is no default test scope.'
+    }
+    if ($Scope.ToLowerInvariant() -eq 'rational-time') {
+        Invoke-DevTestRationalTime
+        return
+    }
+    throw ("Unknown test scope '{0}'. Only scope 'rational-time' is supported (M0-002 RationalTime harness). No all/core/scoreir aliases are defined." -f $Scope)
 }
 
 function Invoke-DevVerify {
     param([string]$Scope)
     Write-DevHeader 'verify'
-    $scopeText = if ([string]::IsNullOrWhiteSpace($Scope)) { '(default)' } else { $Scope }
-    Write-DevInfo ('Scope: {0}' -f $scopeText)
-    throw 'NotImplemented: there is no verification harness in this repository yet (baseline is spec-only, pre-M0). Prerequisite: verification/CI gate per Definition of Done (spec/v0.1/03-development-plan.md §13) before verify can pass.'
+    if ([string]::IsNullOrWhiteSpace($Scope)) {
+        throw 'Usage: dev.ps1 verify <scope>. A scope is required: only explicit scope "rational-time" is implemented (M0-002 RationalTime harness). There is no default verify scope.'
+    }
+    if ($Scope.ToLowerInvariant() -eq 'rational-time') {
+        Invoke-DevVerifyRationalTime
+        return
+    }
+    throw ("Unknown verify scope '{0}'. Only scope 'rational-time' is supported (M0-002 RationalTime harness). No all/core/scoreir aliases are defined." -f $Scope)
+}
+
+# ---------------------------------------------------------------------------
+# M0-002 RationalTime harness (scoped CMake/CTest)
+#
+# Contract (see spec/development-workflow.md S4 and docs/rational-time-notes.md):
+#   * Only the explicit scope "rational-time" is implemented. The repo root is
+#     resolved from the module location, never from the working directory, so
+#     these commands work from any CWD.
+#   * A deterministic ignored build directory build/dev/rational-time is used
+#     (never any pre-existing build directory).
+#   * Only local CMake/CTest are invoked. cmake (>= 3.20) and ctest are found
+#     via Get-Command; Ninja is used when available (never downloaded). No
+#     remote, network, or model use.
+#   * Every native exit code is checked; failures throw and exit non-zero.
+# ---------------------------------------------------------------------------
+
+function Get-DevApplication {
+    param([Parameter(Mandatory = $true)][string]$Name)
+    # Get-Command may return multiple applications sharing a name (e.g. cmake.exe
+    # and cmake.cmd, or several on PATH); pin to the first match so .Source is a
+    # single string.
+    $found = @(Get-Command -Name $Name -CommandType Application -ErrorAction SilentlyContinue)
+    if ($found.Count -eq 0) {
+        return $null
+    }
+    return $found[0]
+}
+
+function Assert-DevCmakeVersion {
+    param([Parameter(Mandatory = $true)][string]$CmakePath)
+    $out = (& $CmakePath --version 2>&1 | Out-String)
+    if ($LASTEXITCODE -ne 0) {
+        throw ('Could not run cmake --version (exit code {0}).' -f $LASTEXITCODE)
+    }
+    if ($out -notmatch 'cmake version (\d+)\.(\d+)') {
+        throw ('Could not determine cmake version from output: {0}' -f $out.Trim())
+    }
+    $major = [int]$Matches[1]
+    $minor = [int]$Matches[2]
+    if ($major -lt 3 -or ($major -eq 3 -and $minor -lt 20)) {
+        throw ('Prerequisite missing: cmake 3.20+ is required by the rational-time harness (ctest --test-dir); found {0}.{1}.' -f $major, $minor)
+    }
+}
+
+function Get-DevRationalTimeEnv {
+    $root = Get-DevRepoRoot
+    $cmakeCmd = Get-DevApplication 'cmake'
+    if ($null -eq $cmakeCmd) {
+        throw 'Prerequisite missing: cmake was not found on PATH. The M0-002 rational-time harness requires cmake (>= 3.20) and ctest on PATH, with a C++20 toolchain visible to cmake (on Windows, run from a Developer PowerShell / after vcvars). No downloads or installs are performed.'
+    }
+    $ctestCmd = Get-DevApplication 'ctest'
+    if ($null -eq $ctestCmd) {
+        throw 'Prerequisite missing: ctest was not found on PATH. The M0-002 rational-time harness requires cmake (>= 3.20) and ctest on PATH. No downloads or installs are performed.'
+    }
+    Assert-DevCmakeVersion -CmakePath $cmakeCmd.Source
+    $ninjaCmd = Get-DevApplication 'ninja'
+    $generator = 'Ninja'
+    $makeProgram = $null
+    if ($null -ne $ninjaCmd) {
+        $makeProgram = $ninjaCmd.Source
+    } else {
+        $generator = $null  # fall back to the cmake default generator
+    }
+    $buildDir = Join-Path $root (Join-Path 'build' (Join-Path 'dev' 'rational-time'))
+    return [pscustomobject]@{
+        Root        = $root
+        CMake       = $cmakeCmd.Source
+        CTest       = $ctestCmd.Source
+        Generator   = $generator
+        MakeProgram = $makeProgram
+        BuildDir    = $buildDir
+    }
+}
+
+function Invoke-DevRationalTimeConfigure {
+    param($Env)
+    Write-DevInfo ('Repo root (from module location): {0}' -f $Env.Root)
+    Write-DevInfo ('Build directory: {0}' -f $Env.BuildDir)
+    Write-DevInfo ('Generator: {0}' -f $(if ($Env.Generator) { $Env.Generator } else { '(cmake default)' }))
+    $configArgs = @('-S', $Env.Root, '-B', $Env.BuildDir, '-DCMAKE_BUILD_TYPE=Debug')
+    if ($Env.Generator) { $configArgs += @('-G', $Env.Generator) }
+    if ($Env.MakeProgram) { $configArgs += @('-DCMAKE_MAKE_PROGRAM=' + $Env.MakeProgram) }
+    & $Env.CMake @configArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw ('cmake configure failed (exit code {0}).' -f $LASTEXITCODE)
+    }
+}
+
+function Invoke-DevRationalTimeBuildTarget {
+    param($Env)
+    & $Env.CMake '--build' $Env.BuildDir '--target' 'choirloom_rational_time_tests' '--config' 'Debug'
+    if ($LASTEXITCODE -ne 0) {
+        throw ('cmake build of target choirloom_rational_time_tests failed (exit code {0}).' -f $LASTEXITCODE)
+    }
+}
+
+function Invoke-DevRationalTimeCtest {
+    param($Env)
+    # Zero-match guard: dry-run count must be exactly 1 for the scope.
+    $countOut = & $Env.CTest '--test-dir' $Env.BuildDir '-N' '-R' '^rational_time_tests$' 2>&1 | Out-String
+    $countRc = $LASTEXITCODE
+    $count = 0
+    if ($countRc -eq 0) {
+        $count = @([regex]::Matches($countOut, 'Test\s*#\s*\d+\s*:')).Count
+    }
+    if ($count -ne 1) {
+        throw ('ctest found {0} matching test(s) for scope ''rational-time'' (regex ^rational_time_tests$); expected exactly 1. CTest dry-run exit code: {1}.' -f $count, $countRc)
+    }
+    & $Env.CTest '--test-dir' $Env.BuildDir '--output-on-failure' '-R' '^rational_time_tests$'
+    if ($LASTEXITCODE -ne 0) {
+        throw ('ctest failed (exit code {0}).' -f $LASTEXITCODE)
+    }
+    Write-DevOk ('RationalTime test suite passed (exactly {0} CTest test(s) ran).' -f $count)
+}
+
+function Invoke-DevBuildRationalTime {
+    Write-DevInfo 'Scope: rational-time (M0-002 harness; CMake/CTest only).'
+    $rt = Get-DevRationalTimeEnv
+    Invoke-DevRationalTimeConfigure -Env $rt
+    Invoke-DevRationalTimeBuildTarget -Env $rt
+    Write-DevOk 'Build succeeded: scope rational-time (test target choirloom_rational_time_tests only).'
+    Write-DevInfo 'Scope is limited to the RationalTime slice; no full product build is configured.'
+}
+
+function Invoke-DevTestRationalTime {
+    Write-DevInfo 'Scope: rational-time (M0-002 harness; configures/builds first, then runs CTest).'
+    $rt = Get-DevRationalTimeEnv
+    Invoke-DevRationalTimeConfigure -Env $rt
+    Invoke-DevRationalTimeBuildTarget -Env $rt
+    Invoke-DevRationalTimeCtest -Env $rt
+}
+
+function Invoke-DevVerifyRationalTime {
+    Write-DevInfo 'Scope: rational-time (build + test gate).'
+    $rt = Get-DevRationalTimeEnv
+    Invoke-DevRationalTimeConfigure -Env $rt
+    Invoke-DevRationalTimeBuildTarget -Env $rt
+    Invoke-DevRationalTimeCtest -Env $rt
+
+    # Control-plane dispatch checks (negative paths only: missing/unknown/extra
+    # scope). The dispatch script is told to skip its own rational-time success
+    # cases, so this never recurses into `verify`; it only re-invokes dev.ps1
+    # for the failing-argument paths and asserts non-zero exit. Any failure
+    # makes this verify fail. The script runs in a child PowerShell process so
+    # its `exit` code is captured reliably (an in-process `&` call does not
+    # propagate a script's exit code to the caller).
+    $dispatchScript = Join-Path $rt.Root (Join-Path 'tests' (Join-Path 'dev' 'dispatch.tests.ps1'))
+    if (-not (Test-Path -LiteralPath $dispatchScript)) {
+        throw ('Control-plane dispatch script not found: {0}' -f $dispatchScript)
+    }
+    $psPath = (Get-Process -Id $PID).Path
+    if ([string]::IsNullOrWhiteSpace($psPath)) {
+        $psPath = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh' } else { 'powershell' }
+    }
+    Write-DevInfo ('Running control-plane dispatch checks: {0} (negative-path mode)...' -f $dispatchScript)
+    $dispatchOut = & $psPath -NoProfile -ExecutionPolicy Bypass -File $dispatchScript -SkipRationalTimeSuccess *>&1 | Out-String
+    $dispatchRc = $LASTEXITCODE
+    Write-Host $dispatchOut.TrimEnd()
+    if ($dispatchRc -ne 0) {
+        throw ('Control-plane dispatch checks failed (exit code {0}).' -f $dispatchRc)
+    }
+    if ($dispatchOut -match '(\d+) checks, (\d+) failures') {
+        Write-DevInfo ('Control-plane dispatch checks: {0} checks, {1} failures (missing/unknown/extra-argument paths).' -f $Matches[1], $Matches[2])
+    }
+
+    Write-DevHeader 'verify result'
+    Write-DevOk 'M0-001 RationalTime slice verification passed.'
+    Write-DevWarn 'Full M0 milestone gate remains OPEN: this slice covers only the rational-time harness scope (dev.ps1 build|test|verify rational-time). Not addressed by this slice: full M0 harness, ScoreIR fixture/schema harness, CI, project SQLite migration/revision primitives, and WinUI host gates.'
 }
 
 function Invoke-DevRemote {
