@@ -22,18 +22,18 @@ function Show-DevUsage {
         ''
         'Usage:'
         '  dev.ps1 doctor'
-        '  dev.ps1 build <scope>        (Implemented for scopes: rational-time, entity-revision, schema-foundation)'
-        '  dev.ps1 test <scope>         (Implemented for scopes: rational-time, entity-revision, schema-foundation)'
-        '  dev.ps1 verify <scope>       (Implemented for scopes: rational-time, entity-revision, schema-foundation)'
+        '  dev.ps1 build <scope>        (Implemented for scopes: rational-time, entity-revision, schema-foundation, scoreir)'
+        '  dev.ps1 test <scope>         (Implemented for scopes: rational-time, entity-revision, schema-foundation, scoreir)'
+        '  dev.ps1 verify <scope>       (Implemented for scopes: rational-time, entity-revision, schema-foundation, scoreir)'
         '  dev.ps1 remote setup|doctor|submit|status|logs|cancel|fetch-report|fetch-model [-Confirm]'
         '  dev.ps1 model validate|benchmark <path>'
         ''
         'Notes:'
         '  * build/test/verify require exactly one scope argument. Implemented'
-        '    scopes: "rational-time" (M0-002), "entity-revision" (M0-003), and'
-        '    "schema-foundation" (M0-004). Missing, unknown, or extra scope'
-        '    arguments exit non-zero (Usage / Unknown scope); there is no'
-        '    default scope and no all/core/scoreir aliases.'
+        '    scopes: "rational-time" (M0-002), "entity-revision" (M0-003),'
+        '    "schema-foundation" (M0-004), and "scoreir" (M0-005). Missing,'
+        '    unknown, or extra scope arguments exit non-zero (Usage / Unknown'
+        '    scope); there is no default scope and no all/core/scoreir aliases.'
         '  * The scoped harness invokes local CMake/CTest only (cmake >= 3.20,'
         '    ctest and a C++20 toolchain visible to cmake are required; Ninja is'
         '    used when available). It never downloads, installs, or uses'
@@ -82,19 +82,19 @@ try {
         'doctor' { Invoke-DevDoctor }
         'build'  {
             if ($script:positional.Count -ne 2) {
-                throw 'Usage: dev.ps1 build <scope>. Exactly one scope argument is required; missing or extra arguments are rejected. Supported scopes: rational-time (M0-002), entity-revision (M0-003).'
+                throw 'Usage: dev.ps1 build <scope>. Exactly one scope argument is required; missing or extra arguments are rejected. Supported scopes: rational-time (M0-002), entity-revision (M0-003), schema-foundation (M0-004), scoreir (M0-005).'
             }
             Invoke-DevBuild -Scope (Get-DevArg 1)
         }
         'test'   {
             if ($script:positional.Count -ne 2) {
-                throw 'Usage: dev.ps1 test <scope>. Exactly one scope argument is required; missing or extra arguments are rejected. Supported scopes: rational-time (M0-002), entity-revision (M0-003).'
+                throw 'Usage: dev.ps1 test <scope>. Exactly one scope argument is required; missing or extra arguments are rejected. Supported scopes: rational-time (M0-002), entity-revision (M0-003), schema-foundation (M0-004), scoreir (M0-005).'
             }
             Invoke-DevTest -Scope (Get-DevArg 1)
         }
         'verify' {
             if ($script:positional.Count -ne 2) {
-                throw 'Usage: dev.ps1 verify <scope>. Exactly one scope argument is required; missing or extra arguments are rejected. Supported scopes: rational-time (M0-002), entity-revision (M0-003).'
+                throw 'Usage: dev.ps1 verify <scope>. Exactly one scope argument is required; missing or extra arguments are rejected. Supported scopes: rational-time (M0-002), entity-revision (M0-003), schema-foundation (M0-004), scoreir (M0-005).'
             }
             Invoke-DevVerify -Scope (Get-DevArg 1)
         }

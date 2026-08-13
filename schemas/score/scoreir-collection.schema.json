@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "choirloom:score/scoreir-collection/0.1.0",
+  "title": "ScoreIRGoldenCollection",
+  "version": "0.1.0",
+  "description": "Envelope for tests/golden/scoreir.samples.json. Each case has a 'name', a 'kind' from a fixed enum that selects the wire shape of 'value', and an optional 'note'. DRAFT / NON-FROZEN.",
+  "type": "object",
+  "required": ["cases"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "kind", "value"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["scoreir"]
+          },
+          "value": {}
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "kind": { "const": "scoreir" } }, "required": ["kind"] },
+            "then": { "properties": { "value": { "$ref": "choirloom:score/scoreir/0.1.0" } } }
+          }
+        ]
+      }
+    }
+  }
+}

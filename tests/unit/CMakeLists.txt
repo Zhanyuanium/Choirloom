@@ -75,3 +75,24 @@ else()
 endif()
 
 add_test(NAME schema_foundation_tests COMMAND schema_foundation_tests)
+
+# --- M0-005 scoreir scope ----------------------------------------------------
+add_executable(scoreir_tests
+    scoreir_tests.cpp
+)
+
+target_link_libraries(scoreir_tests PRIVATE choirloom_score)
+
+target_compile_features(scoreir_tests PRIVATE cxx_std_20)
+
+target_compile_definitions(scoreir_tests PRIVATE
+    CHOIRLOOM_TEST_SOURCE_DIR="${CHOIRLOOM_TEST_SOURCE_DIR}"
+)
+
+if(MSVC)
+    target_compile_options(scoreir_tests PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(scoreir_tests PRIVATE -Wall -Wextra -pedantic)
+endif()
+
+add_test(NAME scoreir_tests COMMAND scoreir_tests)

@@ -7,11 +7,13 @@
 #   * help exits 0;
 #   * build/test/verify with a MISSING scope exit non-zero (Usage);
 #   * build/test/verify with an UNKNOWN scope exit non-zero (Unknown scope);
-#   * build/test/verify with EXTRA scope arguments exit non-zero, for BOTH
-#     implemented scopes (rational-time, entity-revision);
-#   * (default mode, toolchain present) build/test/verify rational-time and
-#     entity-revision succeed, and each verify emits its scoped
-#     "verification passed" language plus the full-M0-open statement.
+#   * build/test/verify with EXTRA scope arguments exit non-zero, for all
+#     implemented scopes (rational-time, entity-revision, schema-foundation,
+#     scoreir);
+#   * (default mode, toolchain present) build/test/verify succeed for every
+#     implemented scope (rational-time, entity-revision, schema-foundation,
+#     scoreir), and each verify emits its scoped "verification passed"
+#     language plus the full-M0-open statement.
 #
 # Two invocation modes:
 #   * Standalone (no switch): runs all of the above; the success cases run only
@@ -26,7 +28,7 @@
 #   pwsh -NoProfile -ExecutionPolicy Bypass -File tests/dev/dispatch.tests.ps1
 #
 # Note: this is a control-plane dispatch test, not a product test; it is not
-# part of either CTest scope.
+# part of any of the four slice CTest scopes.
 # ============================================================================
 
 param(
@@ -40,12 +42,13 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $devPs1   = Join-Path $repoRoot 'dev.ps1'
-$scopes   = @('rational-time', 'entity-revision', 'schema-foundation')
+$scopes   = @('rational-time', 'entity-revision', 'schema-foundation', 'scoreir')
 
 $expectedVerifyLabel = @{
     'rational-time'     = 'M0-001 RationalTime slice verification passed'
     'entity-revision'   = 'M0-003 EntityId/Revision primitive verification passed'
     'schema-foundation' = 'M0-004 Schema foundation verification passed'
+    'scoreir'           = 'M0-005 ScoreIR schema verification passed'
 }
 
 $failures = 0
@@ -118,7 +121,7 @@ foreach ($verb in @('build', 'test', 'verify')) {
     Assert-Exit -Expected 1 -Actual $rc -What ("{0} all (no alias)" -f $verb)
 }
 
-# --- Extra scope arguments must fail (exactly one scope), both scopes --------
+# --- Extra scope arguments must fail (exactly one scope), all scopes --------
 foreach ($verb in @('build', 'test', 'verify')) {
     foreach ($scope in $scopes) {
         $rc = Invoke-DevPs1Silently -DevArgs @($verb, $scope, 'unexpected')
@@ -129,16 +132,16 @@ foreach ($verb in @('build', 'test', 'verify')) {
 # --- Success scope paths (skipped in verify-embedded mode) --------------------
 if ($SkipSuccessCases) {
     Write-Host 'note dispatch: success cases skipped (negative-path mode, invoked by dev.ps1 verify <scope>).'
-    $script:skipped += 6
+    $script:skipped += 8
 } else {
     $cmake = Get-Command -Name 'cmake' -CommandType Application -ErrorAction SilentlyContinue
     $ctest = Get-Command -Name 'ctest' -CommandType Application -ErrorAction SilentlyContinue
     if ($null -eq $cmake -or $null -eq $ctest) {
         Write-Host 'warn dispatch: cmake/ctest not on PATH - skipping success cases (toolchain prerequisite not met).'
-        $script:skipped += 6
+        $script:skipped += 8
     } elseif (-not (Test-LocalToolchainFeasible)) {
         Write-Host 'warn dispatch: no local MSVC toolchain discoverable and no MSVC C++ env present - skipping success cases (machine-specific bootstrap unavailable).'
-        $script:skipped += 6
+        $script:skipped += 8
     } else {
         foreach ($scope in $scopes) {
             $rc = Invoke-DevPs1Silently -DevArgs @('build', $scope)

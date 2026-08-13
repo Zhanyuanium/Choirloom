@@ -111,7 +111,8 @@
   (rational-time, rational-time-collection, entity-id, revision-id,
   project-revision-metadata, entity-revision-collection) plus the M0-004
   schemas (schema-version, schema-id, schema-document-id, schema-catalog,
-  schema-foundation-collection). Paths are repo-relative and source-tree only.
+  schema-foundation-collection) and the M0-005 schemas (scoreir,
+  scoreir-collection). Paths are repo-relative and source-tree only.
   The `rules` array is currently empty (all registered versions are 0.1.0);
   compatibility/migration examples live in the golden fixture and tests via
   synthetic catalogs.
@@ -189,7 +190,7 @@ on-disk `$id`/`version` matching, `$ref` resolution).
 
 ## 9. M0 open gates
 
-Full M0 harness, ScoreIR fixture/schema harness, CI, project SQLite
+Full M0 harness, full ScoreIR/revision coverage beyond the minimal ScoreIR fixture/schema harness, CI, project SQLite
 migration/revision primitives, WinUI host gates, and the
 correspondence/lineage and migration-execution engines remain open. This slice
 provides the versioning/catalog foundation and the migration-planning contract

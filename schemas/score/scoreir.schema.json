@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "choirloom:score/scoreir/0.1.0",
+  "title": "ScoreIR",
+  "version": "0.1.0",
+  "description": "Minimal public draft ScoreIR document schema (source musical facts ONLY: no Geometry/anchor, Performance/transform, Jianpu, model/UI/storage truth, no float/seconds/ticks). An INSTANCE binds via '$schema' and must NOT carry '$id' (only this schema document has '$id' identity). The document carries a stable EntityId for the score and every referencable entity; Part, Staff, Voice, PerformerRole, Measure and Event are distinct collections with explicit typed ID references. PerformerRole is extensible (not an SATB enum); a note's roleRefs permits multiple roles. Parts are typed; this draft is CHORAL-ONLY (accompaniment parts are a future minimal variant). Measures store canonical exact actualDuration RationalTime. Events are tagged variants: note / rest (time + refs), and opaqueNotation / unsupportedRelation / UnknownSymbol (explicit source states WITHOUT fabricated pitch/duration/voice/roles, raw preserved losslessly). Pitch separates written spelling (with octave), display accidental, and sounding pitch (F# vs Gb are distinct spellings). DRAFT / NON-FROZEN. Two-level validation: this schema enforces the syntactic shape; id/reference/reference-type, duplicate-id, rational-time canonicality/sign, closed-field, reserved/derived-layer-field, and per-variant semantics are enforced by the core (ScoreIRDocument::from_json / validate_scoreir).",
+  "type": "object",
+  "required": ["$schema", "version", "scoreId", "parts", "staves", "voices", "performerRoles", "measures", "events"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "choirloom:score/scoreir/0.1.0"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "scoreId": {
+      "$ref": "choirloom:score/entity-id/0.1.0"
+    },
+    "metadata": {
+      "type": "object",
+      "required": [],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "parts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "name"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "choirloom:score/entity-id/0.1.0" },
+          "type": { "type": "string", "enum": ["choral"] },
+          "name": { "type": "string" }
+        }
+      }
+    },
+    "staves": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "partRef", "label"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "choirloom:score/entity-id/0.1.0" },
+          "partRef": { "$ref": "choirloom:score/entity-id/0.1.0" },
+          "label": { "type": "string" }
+        }
+      }
+    },
+    "voices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "staffRef", "label"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "choirloom:score/entity-id/0.1.0" },
+          "staffRef": { "$ref": "choirloom:score/entity-id/0.1.0" },
+          "label": { "type": "string" }
+        }
+      }
+    },
+    "performerRoles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "choirloom:score/entity-id/0.1.0" },
+          "label": { "type": "string" }
+        }
+      }
+    },
+    "measures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "index", "number", "pickup", "actualDuration"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "choirloom:score/entity-id/0.1.0" },
+          "index": { "type": "integer", "minimum": 0 },
+          "number": { "type": "string" },
+          "pickup": { "type": "boolean" },
+          "actualDuration": { "$ref": "choirloom:score/rational-time/0.1.0" }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["id", "kind", "measureRef", "offset", "duration", "pitch", "roleRefs", "voiceRef"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "$ref": "choirloom:score/entity-id/0.1.0" },
+              "kind": { "const": "note" },
+              "measureRef": { "$ref": "choirloom:score/entity-id/0.1.0" },
+              "offset": { "$ref": "choirloom:score/rational-time/0.1.0" },
+              "duration": { "$ref": "choirloom:score/rational-time/0.1.0" },
+              "pitch": {
+                "type": "object",
+                "required": ["written", "displayAccidental", "sounding"],
+                "additionalProperties": false,
+                "properties": {
+                  "written": {
+                    "type": "object",
+                    "required": ["letter", "accidental", "octave"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "letter": { "type": "string", "pattern": "^[A-G]$" },
+                      "accidental": { "type": "string", "enum": ["natural", "sharp", "flat", "double-sharp", "double-flat"] },
+                      "octave": { "type": "integer", "minimum": 0, "maximum": 9 }
+                    }
+                  },
+                  "displayAccidental": { "type": "string" },
+                  "sounding": {
+                    "type": "object",
+                    "required": ["letter", "accidental", "octave"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "letter": { "type": "string", "pattern": "^[A-G]$" },
+                      "accidental": { "type": "string", "enum": ["natural", "sharp", "flat", "double-sharp", "double-flat"] },
+                      "octave": { "type": "integer", "minimum": 0, "maximum": 9 }
+                    }
+                  }
+                }
+              },
+              "roleRefs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "choirloom:score/entity-id/0.1.0" } },
+              "voiceRef": { "$ref": "choirloom:score/entity-id/0.1.0" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["id", "kind", "measureRef", "offset", "duration", "voiceRef"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "$ref": "choirloom:score/entity-id/0.1.0" },
+              "kind": { "const": "rest" },
+              "measureRef": { "$ref": "choirloom:score/entity-id/0.1.0" },
+              "offset": { "$ref": "choirloom:score/rational-time/0.1.0" },
+              "duration": { "$ref": "choirloom:score/rational-time/0.1.0" },
+              "roleRefs": { "type": "array", "items": { "$ref": "choirloom:score/entity-id/0.1.0" } },
+              "voiceRef": { "$ref": "choirloom:score/entity-id/0.1.0" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["id", "kind", "measureRef", "offset", "raw"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "$ref": "choirloom:score/entity-id/0.1.0" },
+              "kind": { "const": "opaqueNotation" },
+              "measureRef": { "$ref": "choirloom:score/entity-id/0.1.0" },
+              "offset": { "$ref": "choirloom:score/rational-time/0.1.0" },
+              "raw": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["id", "kind", "measureRef", "offset", "raw"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "$ref": "choirloom:score/entity-id/0.1.0" },
+              "kind": { "const": "unsupportedRelation" },
+              "measureRef": { "$ref": "choirloom:score/entity-id/0.1.0" },
+              "offset": { "$ref": "choirloom:score/rational-time/0.1.0" },
+              "raw": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["id", "kind", "measureRef", "offset", "raw"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "$ref": "choirloom:score/entity-id/0.1.0" },
+              "kind": { "const": "UnknownSymbol" },
+              "measureRef": { "$ref": "choirloom:score/entity-id/0.1.0" },
+              "offset": { "$ref": "choirloom:score/rational-time/0.1.0" },
+              "raw": { "type": "string" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

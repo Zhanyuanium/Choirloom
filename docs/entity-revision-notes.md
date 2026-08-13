@@ -181,8 +181,9 @@ stating the full M0 milestone gate remains open. See
 ## 9. Build / validation status
 
 - Implemented harness scopes: `rational-time` (M0-001/M0-002),
-  `entity-revision` (M0-003), and `schema-foundation` (M0-004,
-  see `docs/schema-foundation-notes.md`). All other verbs/scopes report
+  `entity-revision` (M0-003), `schema-foundation` (M0-004, see
+  `docs/schema-foundation-notes.md`), and `scoreir` (M0-005, see
+  `docs/scoreir-schema-notes.md`). All other verbs/scopes report
   `NotImplemented:` or a prerequisite message and exit non-zero.
 - Prerequisites: `cmake` (>= 3.20) and `ctest` on PATH. On Windows, `dev.ps1`
   initializes the **already-installed** Visual Studio Build Tools MSVC C++
@@ -193,7 +194,7 @@ stating the full M0 milestone gate remains open. See
   installed; an existing non-MSVC cache is left unchanged. Ninja used when
   available. No downloads, installs, remote, network, or model use. Works from
   any working directory (repo root resolved from the module location).
-- Open M0 gates: full M0 harness, ScoreIR fixture/schema harness, CI,
+- Open M0 gates: full M0 harness, full ScoreIR/revision coverage beyond the minimal ScoreIR fixture/schema harness, CI,
   project SQLite migration/revision primitives, and WinUI host gates.
 
 ## 10. Scope guardrails

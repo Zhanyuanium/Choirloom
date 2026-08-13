@@ -1,0 +1,80 @@
+{
+  "$schema": "../../schemas/score/scoreir-collection.schema.json",
+  "description": "Golden samples for M0-005 minimal ScoreIR schema. The 'scoreir' case carries a full choral ScoreIR document: one choral part/staff, two voices, two extensible performer roles, a pickup (incomplete) measure plus a full measure (each with canonical exact actualDuration), exact canonical RationalTime offsets/durations (0/1, 1/4, 1/12), F# vs Gb written-pitch distinction (separate written spelling with octave / display accidental / sounding pitch), a shared-role note, a rest, and a genuine UnknownSymbol event (explicit source state without fabricated pitch/duration/voice/roles). The instance binds via '$schema' and carries no '$id'.",
+  "cases": [
+    {
+      "name": "scoreir-document",
+      "kind": "scoreir",
+      "note": "full minimal ScoreIR document",
+      "value": {
+        "$schema": "choirloom:score/scoreir/0.1.0",
+        "version": "0.1.0",
+        "scoreId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+        "metadata": { "title": "Choral study: pickup and shared-role sample" },
+        "parts": [
+          { "id": "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f", "type": "choral", "name": "Soprano" }
+        ],
+        "staves": [
+          { "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d", "partRef": "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f", "label": "Soprano staff" }
+        ],
+        "voices": [
+          { "id": "9a8b7c6d-5e4f-4a3b-8c9d-0e1f2a3b4c5d", "staffRef": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d", "label": "S1" },
+          { "id": "0f1e2d3c-4b5a-4c6d-8e9f-0a1b2c3d4e5f", "staffRef": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d", "label": "S2" }
+        ],
+        "performerRoles": [
+          { "id": "6d5c4b3a-2f1e-4d0c-8b9a-1e2f3a4b5c6d", "label": "S1" },
+          { "id": "7e6f5a4b-3c2d-4e1f-9a8b-7c6d5e4f3a2b", "label": "S2" }
+        ],
+        "measures": [
+          { "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e", "index": 0, "number": "0", "pickup": true, "actualDuration": { "numerator": "1", "denominator": "3" } },
+          { "id": "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f", "index": 1, "number": "1", "pickup": false, "actualDuration": { "numerator": "1", "denominator": "4" } }
+        ],
+        "events": [
+          {
+            "id": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70",
+            "kind": "note",
+            "measureRef": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+            "offset": { "numerator": "0", "denominator": "1" },
+            "duration": { "numerator": "1", "denominator": "4" },
+            "pitch": {
+              "written": { "letter": "F", "accidental": "sharp", "octave": 5 },
+              "displayAccidental": "sharp",
+              "sounding": { "letter": "F", "accidental": "sharp", "octave": 5 }
+            },
+            "roleRefs": [ "6d5c4b3a-2f1e-4d0c-8b9a-1e2f3a4b5c6d" ],
+            "voiceRef": "9a8b7c6d-5e4f-4a3b-8c9d-0e1f2a3b4c5d"
+          },
+          {
+            "id": "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f70a1",
+            "kind": "note",
+            "measureRef": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+            "offset": { "numerator": "1", "denominator": "4" },
+            "duration": { "numerator": "1", "denominator": "12" },
+            "pitch": {
+              "written": { "letter": "G", "accidental": "flat", "octave": 5 },
+              "displayAccidental": "flat",
+              "sounding": { "letter": "G", "accidental": "flat", "octave": 5 }
+            },
+            "roleRefs": [ "7e6f5a4b-3c2d-4e1f-9a8b-7c6d5e4f3a2b", "6d5c4b3a-2f1e-4d0c-8b9a-1e2f3a4b5c6d" ],
+            "voiceRef": "0f1e2d3c-4b5a-4c6d-8e9f-0a1b2c3d4e5f"
+          },
+          {
+            "id": "f6a7b8c9-d0e1-4f2a-9b3c-4d5e6f70a1b2",
+            "kind": "rest",
+            "measureRef": "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+            "offset": { "numerator": "0", "denominator": "1" },
+            "duration": { "numerator": "1", "denominator": "4" },
+            "voiceRef": "9a8b7c6d-5e4f-4a3b-8c9d-0e1f2a3b4c5d"
+          },
+          {
+            "id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "kind": "UnknownSymbol",
+            "measureRef": "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+            "offset": { "numerator": "1", "denominator": "4" },
+            "raw": "unrecognized glyph above staff (kept verbatim)"
+          }
+        ]
+      }
+    }
+  ]
+}

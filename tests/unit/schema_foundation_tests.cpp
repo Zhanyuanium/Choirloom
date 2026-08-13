@@ -324,7 +324,7 @@ void test_real_catalog()
         second_order.push_back(e.document_id.to_string());
     }
     CHECK(g, first_order == second_order);
-    CHECK(g, first_order.size() == 11);
+    CHECK(g, first_order.size() == 13);
     // Deterministic order is by (schemaId, then schemaVersion) - not by
     // documentId string order ('/' vs '-' separators differ).
     {

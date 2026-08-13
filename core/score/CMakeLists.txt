@@ -13,6 +13,7 @@ add_library(choirloom_score STATIC
     rational_time.cpp
     entity_revision.cpp
     schema_foundation.cpp
+    scoreir.cpp
 )
 
 target_include_directories(choirloom_score PUBLIC

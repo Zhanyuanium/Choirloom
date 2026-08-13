@@ -5,12 +5,15 @@
 #  All complex logic lives here; dev.ps1 is a thin entry point.
 #  Written for Windows PowerShell 5.1 compatibility (also runs on pwsh 7+).
 #
-#  Implemented operations (M0-002/M0-003): doctor (read-only), and the scoped
-#  harness commands `build|test|verify rational-time` and
-#  `build|test|verify entity-revision`, which invoke local CMake/CTest only and
+#  Implemented operations (M0-002..M0-005): doctor (read-only), and the scoped
+#  harness commands `build|test|verify rational-time` (M0-001/M0-002),
+#  `build|test|verify entity-revision` (M0-003),
+#  `build|test|verify schema-foundation` (M0-004), and
+#  `build|test|verify scoreir` (M0-005), which invoke local CMake/CTest only and
 #  write disposable build artifacts under build/dev/<scope>.
-#  The full product/M0 harness, ScoreIR fixture/schema harness, CI,
-#  migration/revision primitives and WinUI host gates remain open.
+#  The minimal M0-005 ScoreIR fixture/schema harness is implemented. The full
+#  product/M0 harness, full ScoreIR/revision coverage beyond that minimal
+#  harness, CI, migration/revision primitives and WinUI host gates remain open.
 #  Every operation that is not yet backed by a real implementation MUST fail
 #  with an explicit "NotImplemented:" or prerequisite message. It must NEVER
 #  fake success.
@@ -167,14 +170,15 @@ function Invoke-DevBuild {
     param([string]$Scope)
     Write-DevHeader 'build'
     if ([string]::IsNullOrWhiteSpace($Scope)) {
-        throw 'Usage: dev.ps1 build <scope>. A scope is required; supported scopes: rational-time, entity-revision. There is no default build scope.'
+        throw 'Usage: dev.ps1 build <scope>. A scope is required; supported scopes: rational-time, entity-revision, schema-foundation, scoreir. There is no default build scope.'
     }
     switch ($Scope.ToLowerInvariant()) {
         'rational-time'    { Invoke-DevBuildSlice -Scope 'rational-time'; return }
         'entity-revision'  { Invoke-DevBuildSlice -Scope 'entity-revision'; return }
         'schema-foundation' { Invoke-DevBuildSlice -Scope 'schema-foundation'; return }
+        'scoreir'         { Invoke-DevBuildSlice -Scope 'scoreir'; return }
         default {
-            throw ("Unknown build scope '{0}'. Supported scopes: rational-time, entity-revision, schema-foundation. No all/core/scoreir aliases are defined." -f $Scope)
+            throw ("Unknown build scope '{0}'. Supported scopes: rational-time, entity-revision, schema-foundation, scoreir. No all/core/scoreir aliases are defined." -f $Scope)
         }
     }
 }
@@ -183,14 +187,15 @@ function Invoke-DevTest {
     param([string]$Scope)
     Write-DevHeader 'test'
     if ([string]::IsNullOrWhiteSpace($Scope)) {
-        throw 'Usage: dev.ps1 test <scope>. A scope is required; supported scopes: rational-time, entity-revision. There is no default test scope.'
+        throw 'Usage: dev.ps1 test <scope>. A scope is required; supported scopes: rational-time, entity-revision, schema-foundation, scoreir. There is no default test scope.'
     }
     switch ($Scope.ToLowerInvariant()) {
         'rational-time'    { Invoke-DevTestSlice -Scope 'rational-time'; return }
         'entity-revision'  { Invoke-DevTestSlice -Scope 'entity-revision'; return }
         'schema-foundation' { Invoke-DevTestSlice -Scope 'schema-foundation'; return }
+        'scoreir'         { Invoke-DevTestSlice -Scope 'scoreir'; return }
         default {
-            throw ("Unknown test scope '{0}'. Supported scopes: rational-time, entity-revision, schema-foundation. No all/core/scoreir aliases are defined." -f $Scope)
+            throw ("Unknown test scope '{0}'. Supported scopes: rational-time, entity-revision, schema-foundation, scoreir. No all/core/scoreir aliases are defined." -f $Scope)
         }
     }
 }
@@ -199,26 +204,27 @@ function Invoke-DevVerify {
     param([string]$Scope)
     Write-DevHeader 'verify'
     if ([string]::IsNullOrWhiteSpace($Scope)) {
-        throw 'Usage: dev.ps1 verify <scope>. A scope is required; supported scopes: rational-time, entity-revision. There is no default verify scope.'
+        throw 'Usage: dev.ps1 verify <scope>. A scope is required; supported scopes: rational-time, entity-revision, schema-foundation, scoreir. There is no default verify scope.'
     }
     switch ($Scope.ToLowerInvariant()) {
         'rational-time'    { Invoke-DevVerifySlice -Scope 'rational-time'; return }
         'entity-revision'  { Invoke-DevVerifySlice -Scope 'entity-revision'; return }
         'schema-foundation' { Invoke-DevVerifySlice -Scope 'schema-foundation'; return }
+        'scoreir'         { Invoke-DevVerifySlice -Scope 'scoreir'; return }
         default {
-            throw ("Unknown verify scope '{0}'. Supported scopes: rational-time, entity-revision, schema-foundation. No all/core/scoreir aliases are defined." -f $Scope)
+            throw ("Unknown verify scope '{0}'. Supported scopes: rational-time, entity-revision, schema-foundation, scoreir. No all/core/scoreir aliases are defined." -f $Scope)
         }
     }
 }
 
 # ---------------------------------------------------------------------------
-# M0-002/M0-003 scoped harness (CMake/CTest)
+# M0-001 through M0-005 scoped harnesses (CMake/CTest)
 #
 # Contract (see spec/development-workflow.md S4 and the slice docs):
-#   * Explicit scopes only: "rational-time" (M0-001/M0-002) and
-#     "entity-revision" (M0-003). The repo root is resolved from the module
-#     location, never from the working directory, so these commands work from
-#     any CWD.
+#   * Explicit scopes only: "rational-time" (M0-001/M0-002),
+#     "entity-revision" (M0-003), "schema-foundation" (M0-004), and
+#     "scoreir" (M0-005). The repo root is resolved from the module location,
+#     never from the working directory, so these commands work from any CWD.
 #   * Deterministic ignored build directories build/dev/<scope> are used
 #     (never any pre-existing build directory).
 #   * Only local CMake/CTest are invoked. cmake (>= 3.20) and ctest are found
@@ -518,6 +524,15 @@ function Get-DevSliceConfig {
                 VerifyLabel  = 'M0-004 Schema foundation'
             }
         }
+        'scoreir' {
+            return [pscustomobject]@{
+                Name         = 'scoreir'
+                BuildDirName = 'scoreir'
+                Target       = 'scoreir_tests'
+                CtestRegex   = '^scoreir_tests$'
+                VerifyLabel  = 'M0-005 ScoreIR schema'
+            }
+        }
         default { throw ("Unsupported harness scope '{0}'." -f $Scope) }
     }
 }
@@ -656,7 +671,7 @@ function Invoke-DevVerifySlice {
 
     Write-DevHeader 'verify result'
     Write-DevOk ('{0} verification passed.' -f $env.VerifyLabel)
-    Write-DevWarn ('Full M0 milestone gate remains OPEN: this slice covers only the {0} harness scope (dev.ps1 build|test|verify {0}). Not addressed by this slice: full M0 harness, ScoreIR fixture/schema harness, CI, project SQLite migration/revision primitives, and WinUI host gates.' -f $Scope)
+    Write-DevWarn ('Full M0 milestone gate remains OPEN: this slice covers only the {0} harness scope (dev.ps1 build|test|verify {0}). Not addressed: full M0 harness, full ScoreIR/revision coverage beyond the minimal ScoreIR fixture/schema harness, CI, project SQLite migration/revision primitives, and WinUI host gates.' -f $Scope)
 }
 
 function Invoke-DevRemote {
